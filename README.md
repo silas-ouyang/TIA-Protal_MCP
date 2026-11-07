@@ -1,6 +1,6 @@
 # TIA-MCP-Gateway
 
-A unified Model Context Protocol (MCP) gateway bridging LLM coding agents (Claude, DeepSeek, Opencode, WorkBuddy) with Siemens TIA Portal (V15 through V21.1).
+A unified Model Context Protocol (MCP) gateway bridging **Google Antigravity**, Claude Desktop, DeepSeek, Opencode, and WorkBuddy with Siemens TIA Portal (V15 through V21.1).
 
 ---
 
@@ -12,10 +12,10 @@ If you've ever tried automating Siemens TIA Portal via the Openness API, you kno
 
 ### What This Gateway Does
 
-`TIA-MCP-Gateway` acts as a traffic controller and process manager sitting between your AI client and TIA Portal:
+`TIA-MCP-Gateway` acts as a traffic controller and process manager sitting between your AI coding assistant and TIA Portal:
 
 ```text
-AI Client (opencode / DeepSeek / WorkBuddy / Antigravity)
+AI Client (Google Antigravity / opencode / DeepSeek / WorkBuddy)
         │  stdio (JSON-RPC MCP Protocol)
         ▼
    ┌─────────┐
@@ -54,18 +54,31 @@ AI Client (opencode / DeepSeek / WorkBuddy / Antigravity)
 
 ---
 
-### Quick Start
+### Integration & Setup
 
 #### Prerequisites
 - **OS**: Windows 10 / 11 (64-bit)
 - **Siemens TIA Portal**: V15 through V21.1 installed.
 - **Permissions**: Current Windows user must belong to the **`Siemens TIA Openness`** user group (*Computer Management → Local Users and Groups → Groups*).
 
-#### Installation
+#### 1. Quick Install
 1. Extract or clone this repository into a permanent directory (avoid spaces in path).
 2. Run `安装.bat` (or execute `node gateway/install.js`).
-   - The installer automatically detects installed AI clients (opencode, WorkBuddy, etc.) and registers the gateway configuration.
-3. Restart your AI client.
+   - The installer automatically detects installed AI clients (Antigravity, opencode, WorkBuddy, etc.) and registers the gateway configuration.
+
+#### 2. Manual MCP Client Configuration (e.g. Google Antigravity / Claude Desktop)
+Add the gateway to your MCP configuration file (`mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "tia-gateway": {
+      "command": "node",
+      "args": ["<PATH_TO_REPO>/delivery/TIA-MCP-Gateway-D-v1.4.3/gateway/server.js"]
+    }
+  }
+}
+```
 
 ---
 
@@ -73,13 +86,13 @@ AI Client (opencode / DeepSeek / WorkBuddy / Antigravity)
 
 ```text
 User: "Connect to the V20 instance and check the active project tree."
-Agent -> d_connect(version: "V20") -> d_tree()
+Antigravity -> d_connect(version: "V20") -> d_tree()
 
 User: "Write an S7-1500 motor control block with E-stop and overload interlocks."
-Agent -> d_write_block(name: "FB_MotorControl", lang: "SCL", code: "...")
+Antigravity -> d_write_block(name: "FB_MotorControl", lang: "SCL", code: "...")
 
 User: "Compile and save if clean."
-Agent -> d_finish()  // Offline compile check; saves only if 0 errors.
+Antigravity -> d_finish()  // Offline compile check; saves only if 0 errors.
 ```
 
 ---
