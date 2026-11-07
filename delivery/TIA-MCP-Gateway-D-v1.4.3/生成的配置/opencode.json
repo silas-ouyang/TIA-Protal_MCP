@@ -1,0 +1,18 @@
+{
+  "mcp": {
+    "servers": {
+      "tia": {
+        "type": "local",
+        "command": [
+          "D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\runtime\\node.exe",
+          "D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\gateway.js"
+        ],
+        "timeout": {
+          "startup": 180000,
+          "catalog": 180000,
+          "execution": 1800000
+        }
+      }
+    }
+  }
+}

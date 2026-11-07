@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tia-gateway": {
+      "command": "D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\runtime\\node.exe",
+      "args": [
+        "D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\gateway.js"
+      ],
+      "env": {}
+    }
+  }
+}

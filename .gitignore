@@ -1,0 +1,15 @@
+# Runtime & Lock files
+*.tmp
+*.log
+d.log
+active.lock.*
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.vs/
+.idea/

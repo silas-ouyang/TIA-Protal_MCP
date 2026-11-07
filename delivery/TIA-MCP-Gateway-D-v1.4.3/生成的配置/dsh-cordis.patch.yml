@@ -1,0 +1,11 @@
+# TIA 统一网关 D（内部路由到 A/B 两套博途 MCP）
+- insert:
+    - id: mcp-tia-gateway
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tia
+        transport: stdio
+        command: 'D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\runtime\\node.exe'
+        args: ['D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\gateway.js']
+        toolCallTimeoutMs: 1800000
+        failOnStartupError: false

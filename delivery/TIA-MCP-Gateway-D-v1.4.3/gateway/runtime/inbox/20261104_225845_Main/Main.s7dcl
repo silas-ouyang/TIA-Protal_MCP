@@ -1,0 +1,697 @@
+﻿{
+    S7_Optimized := "TRUE";
+    S7_Language := "LAD";
+}
+ORGANIZATION_BLOCK "Main"
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "SB1_Start" )
+            wire#w1
+            I_Contact( "Run" )
+            PBox( "EdgeStart" )
+            Coil( "CmdStart" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiStart )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CmdStart" )
+            S_Coil( "Run" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CmdStart" )
+            S_Coil( "St1" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "SB2_Pause" )
+            wire#w1
+            Contact( "Run" )
+            PBox( "EdgePause" )
+            S_Coil( "Pause" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiPause )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "SB3_Resume" )
+            wire#w1
+            Contact( "Run" )
+            PBox( "EdgeResume" )
+            R_Coil( "Pause" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiResume )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "SB4_Stop" )
+            wire#w1
+            Contact( "Run" )
+            PBox( "EdgeStop" )
+            S_Coil( "StopReq" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiStop )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "St2" )
+            Coil( "T1_Rst" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "St3" )
+            Coil( "T2_Rst" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "St4" )
+            Coil( "T3_Rst" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "St5" )
+            Coil( "T4_Rst" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "St7" )
+            Coil( "T5_Rst" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St2" )
+            I_Contact( "Pause" )
+            "DB_Timer".T1_Fill.TONR{ time_type := Time }(
+                R := "T1_Rst", 
+                PT := T#6s, 
+                ET =>  
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St3" )
+            I_Contact( "Pause" )
+            "DB_Timer".T2_Delay.TONR{ time_type := Time }(
+                R := "T2_Rst", 
+                PT := T#2s, 
+                ET =>  
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St4" )
+            I_Contact( "Pause" )
+            "DB_Timer".T3_Cap.TONR{ time_type := Time }(
+                R := "T3_Rst", 
+                PT := T#3s, 
+                ET =>  
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St5" )
+            I_Contact( "Pause" )
+            "DB_Timer".T4_Shift.TONR{ time_type := Time }(
+                R := "T4_Rst", 
+                PT := T#2s, 
+                ET =>  
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St7" )
+            I_Contact( "Pause" )
+            "DB_Timer".T5_Pack.TONR{ time_type := Time }(
+                R := "T5_Rst", 
+                PT := T#6s, 
+                ET =>  
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "B1_BottleIn" )
+            wire#w1
+            Contact( "St1" )
+            I_Contact( "Pause" )
+            PBox( "EdgeBottleIn" )
+            wire#w2
+            S_Coil( "St2" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiSensor1 )
+        END_RUNG wire#w1
+        RUNG wire#w2
+            R_Coil( "St1" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St2" )
+            Contact( "DB_Timer".T1_Fill.Q )
+            I_Contact( "Pause" )
+            wire#w1
+            S_Coil( "St3" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St2" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St3" )
+            Contact( "DB_Timer".T2_Delay.Q )
+            I_Contact( "Pause" )
+            wire#w1
+            S_Coil( "St4" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St3" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St4" )
+            Contact( "DB_Timer".T3_Cap.Q )
+            I_Contact( "Pause" )
+            wire#w1
+            S_Coil( "St5" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St4" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St5" )
+            Contact( "DB_Timer".T4_Shift.Q )
+            I_Contact( "Pause" )
+            wire#w1
+            S_Coil( "St6" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St5" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "B2_BottleOut" )
+            wire#w1
+            Contact( "St6" )
+            I_Contact( "Pause" )
+            PBox( "EdgeBottleOut" )
+            Coil( "CntPulse" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "DB_HMI_Interface".HmiSensor2 )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CntPulse" )
+            wire#w1
+            "DB_Count".C1_Bottle.CTU{ value_type := Int }(
+                R := "ClrCnt", 
+                PV := Int#12, 
+                CV => "CntVal"
+            )
+            Coil( "CntOK" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "ClrCnt" )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CntPulse" )
+            I_Contact( "CntOK" )
+            wire#w1
+            S_Coil( "St1" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St6" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CntPulse" )
+            Contact( "CntOK" )
+            wire#w1
+            S_Coil( "St7" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St6" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St7" )
+            Contact( "DB_Timer".T5_Pack.Q )
+            I_Contact( "Pause" )
+            I_Contact( "StopReq" )
+            wire#w1
+            S_Coil( "St1" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St7" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St7" )
+            Contact( "DB_Timer".T5_Pack.Q )
+            I_Contact( "Pause" )
+            wire#w1
+            Coil( "ClrCnt" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "CmdStart" )
+        END_RUNG wire#w1
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "StopReq" )
+            Contact( "St7" )
+            Contact( "DB_Timer".T5_Pack.Q )
+            I_Contact( "Pause" )
+            Coil( "DoStop" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "DoStop" )
+            wire#w1
+            R_Coil( "Run" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "Pause" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "DoStop" )
+            R_Coil( "StopReq" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "DoStop" )
+            wire#w1
+            R_Coil( "St1" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St2" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St3" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St4" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St5" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St6" )
+        END_RUNG
+        RUNG wire#w1
+            R_Coil( "St7" )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St1" )
+            wire#w1
+            I_Contact( "Pause" )
+            wire#w2
+            Coil( "KM1_Conveyor" )
+        END_RUNG
+        RUNG wire#powerrail
+            Contact( "St5" )
+        END_RUNG wire#w1
+        RUNG wire#powerrail
+            Contact( "St6" )
+        END_RUNG wire#w1
+        RUNG wire#w2
+            Coil( "DB_HMI_Interface".OutConveyor )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St2" )
+            I_Contact( "Pause" )
+            wire#w1
+            Coil( "YV1_FillValve" )
+        END_RUNG
+        RUNG wire#w1
+            Coil( "DB_HMI_Interface".OutFill )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St4" )
+            I_Contact( "Pause" )
+            wire#w1
+            Coil( "YV2_CapValve" )
+        END_RUNG
+        RUNG wire#w1
+            Coil( "DB_HMI_Interface".OutCap )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St7" )
+            I_Contact( "Pause" )
+            wire#w1
+            Coil( "KM2_PackMotor" )
+        END_RUNG
+        RUNG wire#w1
+            Coil( "DB_HMI_Interface".OutPack )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "Run" )
+            Coil( "DB_HMI_Interface".StsRun )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "Pause" )
+            Coil( "DB_HMI_Interface".StsPause )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "StopReq" )
+            Coil( "DB_HMI_Interface".StsStopReq )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "CntOK" )
+            Coil( "DB_HMI_Interface".StsCntFull )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            I_Contact( "Run" )
+            Move(
+                in := 0,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St1" )
+            Move(
+                in := 1,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St2" )
+            Move(
+                in := 2,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St3" )
+            Move(
+                in := 3,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St4" )
+            Move(
+                in := 4,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St5" )
+            Move(
+                in := 5,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St6" )
+            Move(
+                in := 6,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Contact( "St7" )
+            Move(
+                in := 7,
+                out1 => "StepNo"
+            )
+        END_RUNG
+    END_NETWORK
+
+    {
+      S7_Language := "LAD"
+    }
+    NETWORK
+        RUNG wire#powerrail
+            Move(
+                in := "StepNo",
+                out1 => "DB_HMI_Interface".HmiStepNo
+            )
+            Move(
+                in := "CntVal",
+                out1 => "DB_HMI_Interface".HmiBottleCount
+            )
+            Move(
+                in := 12,
+                out1 => "DB_HMI_Interface".HmiTargetCount
+            )
+        END_RUNG
+    END_NETWORK
+
+END_ORGANIZATION_BLOCK

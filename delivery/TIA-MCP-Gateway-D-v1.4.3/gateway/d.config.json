@@ -1,0 +1,39 @@
+{
+  "defaultVersion": "20",
+  "upstreams": {
+    "a": {
+      "label": "A · tia-portal-mcp v1.4.1 (47 工具 / V15-V21.1 / LAD 优先)",
+      "kind": "http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "spawn": {
+        "command": "../upstreams/a/tia-portal-mcp.exe",
+        "cwd": "../upstreams/a",
+        "readyPort": 8000,
+        "readyTimeoutMs": 90000
+      }
+    },
+    "b": {
+      "label": "B · TIA_MCP_Delivery v2.7.8 (238 工具 / 默认 lite 65 / V20-V21)",
+      "kind": "stdio",
+      "byVersion": {
+        "20": {
+          "command": "../upstreams/b/runtime/v20/TiaMcpServer.exe",
+          "args": ["--tia-major-version", "20"],
+          "version": "20"
+        },
+        "21": {
+          "command": "../upstreams/b/runtime/v21/TiaMcpServer.exe",
+          "args": ["--tia-major-version", "21"],
+          "version": "21"
+        }
+      }
+    },
+    "c": {
+      "label": "C · Czarnak tia-portal-mcp (19 工具 / 仅 V21)",
+      "kind": "stdio",
+      "installed": false,
+      "command": "TiaMcpServer",
+      "args": []
+    }
+  }
+}
