@@ -3779,6 +3779,38 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
+        [McpServerTool(Name = "SetDeviceIpAddress"), Description(
+            "[L2][Category:Hardware][CONFIG-WRITE][PreCondition:Connect+OpenProject]" +
+            " Configure a device PROFINET interface IPv4 address, subnet mask, and optional gateway directly on Openness" +
+            " NetworkInterface.Nodes (no AML re-import required). Call GetDeviceIpAddress first to inspect node paths/indexes." +
+            " This is an offline hardware configuration change — run CompileHardware and DownloadToPlc with hardware enabled" +
+            " afterwards so the new IP takes effect on the CPU.")]
+        public static ResponseJsonReport SetDeviceIpAddress(
+            [Description("devicePath: device name from GetProjectTree, e.g. 'PLC_1'.")] string devicePath,
+            [Description("ipAddress: IPv4 address to assign, e.g. '192.168.250.10'.")] string ipAddress,
+            [Description("subnetMask: optional IPv4 subnet mask, e.g. '255.255.255.0'. Leave empty to keep current mask.")] string subnetMask = "",
+            [Description("gateway: optional default router IPv4 address (enables router if supported). Leave empty to keep unchanged.")] string gateway = "",
+            [Description("nodeIndex: zero-based index among matched Ethernet/PROFINET nodes on the device (default 0).")] int nodeIndex = 0,
+            [Description("interfacePath: optional substring or path filter from GetDeviceIpAddress, e.g. 'PROFINET 接口_1'. Empty = Industrial Ethernet nodes.")] string interfacePath = "")
+        {
+            try
+            {
+                var data = Portal.SetDeviceIpAddress(devicePath, ipAddress, subnetMask, gateway, nodeIndex, interfacePath);
+                bool ok = data["ok"]?.GetValue<bool>() ?? false;
+                return new ResponseJsonReport
+                {
+                    Ok = ok,
+                    Message = data["message"]?.ToString() ?? (ok ? "IP address updated." : "SetDeviceIpAddress failed."),
+                    Data = data,
+                    Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = ok }
+                };
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"SetDeviceIpAddress failed for '{devicePath}': {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
+            }
+        }
+
         [McpServerTool(Name = "GetProjectTopology"), Description(
             "[L1][Category:Hardware][PreCondition:Connect+OpenProject]" +
             " One-shot, read-only project topology from Openness: every device with its network nodes (IP, subnet, node type)." +
@@ -3895,6 +3927,129 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
+        [McpServerTool(Name = "GetPlcProtection"), Description(
+            "[L2][Category:Hardware][PreCondition:Connect+OpenProject]" +
+            " Read CPU protection level (PlcAccessLevelProvider), confidential configuration master secret state" +
+            " (PlcMasterSecretConfigurator), V3.1+ access control configuration, PUT/GET access, and password policy state.")]
+        public static ResponseJsonReport GetPlcProtection(
+            [Description("devicePath: device name from GetProjectTree, e.g. 'PLC_1'.")] string devicePath)
+        {
+            try
+            {
+                var data = Portal.GetPlcProtection(devicePath);
+                bool found = data["found"]?.GetValue<bool>() ?? false;
+                return new ResponseJsonReport
+                {
+                    Ok = found,
+                    Message = found
+                        ? $"Protection on {devicePath}: accessLevel='{data["accessLevel"]}', masterSecret='{data["masterSecretConfiguration"]}', accessControl='{data["accessControlConfiguration"]}'."
+                        : (data["message"]?.ToString() ?? "Not found."),
+                    Data = data,
+                    Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = found }
+                };
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"GetPlcProtection failed for '{devicePath}': {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
+            }
+        }
+
+        [McpServerTool(Name = "SetPlcProtection"), Description(
+            "[L2][Category:Hardware][CONFIG-WRITE][PreCondition:Connect+OpenProject]" +
+            " Configure CPU protection level (PlcAccessLevelProvider: None/FullAccess/ReadAccess/HMIAccess/NoAccess + optional password)," +
+            " confidential PLC configuration data master secret (PlcMasterSecretConfigurator: protect/unprotect/change_password/reset)," +
+            " V3.1+ access control configuration (Disabled/EnabledWithAccessControl/...), and optional password policy toggle." +
+            " Run CompileHardware and hardware DownloadToPlc afterwards for changes to take effect on the CPU.")]
+        public static ResponseJsonReport SetPlcProtection(
+            [Description("devicePath: device name from GetProjectTree, e.g. 'PLC_1'.")] string devicePath,
+            [Description("accessLevel: optional PlcProtectionAccessLevel value ('FullAccess', 'ReadAccess', 'HMIAccess', 'NoAccess', 'None', 'FullAccessIncludingFailsafe').")] string accessLevel = "",
+            [Description("accessPassword: optional password to set on accessPasswordLevel (or accessLevel/FullAccess). Leave empty to keep unchanged.")] string accessPassword = "",
+            [Description("accessPasswordLevel: optional target access level for accessPassword / resetAccessPassword (defaults to accessLevel or FullAccess).")] string accessPasswordLevel = "",
+            [Description("resetAccessPassword: true to remove the configured password for accessPasswordLevel.")] bool resetAccessPassword = false,
+            [Description("masterSecretMode: optional 'protect', 'unprotect', 'change_password', or 'reset' for confidential PLC configuration data.")] string masterSecretMode = "",
+            [Description("masterSecretPassword: master secret password for 'protect' / 'change_password' (or 'unprotect' if already protected).")] string masterSecretPassword = "",
+            [Description("oldMasterSecretPassword: existing master secret password for 'change_password' / 'unprotect'.")] string oldMasterSecretPassword = "",
+            [Description("accessControlMode: optional V3.1+ PlcAccessControlConfiguration ('Disabled', 'EnabledWithAccessControl', etc.).")] string accessControlMode = "",
+            [Description("passwordPolicyEnabled: optional string 'true'/'false' to enable or disable TIA PLC password policy checks when supported.")] string passwordPolicyEnabled = "")
+        {
+            try
+            {
+                bool? policyFlag = null;
+                if (!string.IsNullOrWhiteSpace(passwordPolicyEnabled))
+                {
+                    if (!bool.TryParse(passwordPolicyEnabled.Trim(), out var parsedPolicy))
+                        throw new McpException($"Invalid passwordPolicyEnabled '{passwordPolicyEnabled}': expected 'true' or 'false'.", McpErrorCode.InvalidParams);
+                    policyFlag = parsedPolicy;
+                }
+
+                var data = Portal.SetPlcProtection(
+                    devicePath,
+                    string.IsNullOrWhiteSpace(accessLevel) ? null : accessLevel,
+                    string.IsNullOrEmpty(accessPassword) ? null : accessPassword,
+                    string.IsNullOrWhiteSpace(accessPasswordLevel) ? null : accessPasswordLevel,
+                    resetAccessPassword,
+                    string.IsNullOrWhiteSpace(masterSecretMode) ? null : masterSecretMode,
+                    string.IsNullOrEmpty(masterSecretPassword) ? null : masterSecretPassword,
+                    string.IsNullOrEmpty(oldMasterSecretPassword) ? null : oldMasterSecretPassword,
+                    string.IsNullOrWhiteSpace(accessControlMode) ? null : accessControlMode,
+                    policyFlag);
+
+                bool ok = data["ok"]?.GetValue<bool>() ?? false;
+                return new ResponseJsonReport
+                {
+                    Ok = ok,
+                    Message = ok
+                        ? $"Updated protection on {devicePath}. Run CompileHardware and DownloadToPlc (hardware) to apply."
+                        : ((data["errors"]?.ToJsonString()) ?? data["message"]?.ToString() ?? "SetPlcProtection completed with errors."),
+                    Data = data,
+                    Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = ok }
+                };
+            }
+            catch (McpException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"SetPlcProtection failed for '{devicePath}': {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
+            }
+        }
+
+        [McpServerTool(Name = "SetOnlinePlcMasterSecret"), Description(
+            "[L2][Category:PLC-Online][ONLINE-WRITE][PreCondition:Connect+OpenProject]" +
+            " Push or reset the confidential PLC configuration data Master Secret on a reachable online CPU/PLCSIM instance via OnlineProvider.")]
+        public static ResponseJsonReport SetOnlinePlcMasterSecret(
+            [Description("softwarePath: path to PLC software, e.g. 'PLC_1'.")] string softwarePath,
+            [Description("confidentialPassword: master secret password to apply online (required unless reset=true).")] string confidentialPassword = "",
+            [Description("reset: true to delete/reset the online PLC master secret.")] bool reset = false,
+            [Description("pgPcInterface: optional PG/PC adapter name substring.")] string pgPcInterface = "",
+            [Description("targetIpAddress: optional CPU IP address.")] string targetIpAddress = "",
+            [Description("password: optional CPU online access password if already protected.")] string password = "")
+        {
+            try
+            {
+                var data = Portal.SetOnlinePlcMasterSecret(
+                    softwarePath,
+                    string.IsNullOrEmpty(confidentialPassword) ? null : confidentialPassword,
+                    reset,
+                    string.IsNullOrWhiteSpace(pgPcInterface) ? null : pgPcInterface,
+                    string.IsNullOrWhiteSpace(targetIpAddress) ? null : targetIpAddress,
+                    string.IsNullOrEmpty(password) ? null : password);
+                bool ok = data["ok"]?.GetValue<bool>() ?? false;
+                return new ResponseJsonReport
+                {
+                    Ok = ok,
+                    Message = data["message"]?.ToString() ?? (ok ? "Online PLC master secret updated." : "SetOnlinePlcMasterSecret failed."),
+                    Data = data,
+                    Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = ok }
+                };
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"SetOnlinePlcMasterSecret failed for '{softwarePath}': {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
+            }
+        }
+
         // Autonomy helper: when a compile/export/import is blocked because TIA is in online mode,
         // take ALL PLCs offline via Openness and retry once — never hand the toggle back to the user.
         internal static bool IsOnlineModeError(Exception ex)
@@ -3970,12 +4125,14 @@ namespace TiaMcpServer.ModelContextProtocol
 
         [McpServerTool(Name = "DownloadToPlc"), Description(
             "[L1][Category:PLC-Online][ONLINE-WRITE][PreCondition:Connect+OpenProject+CompileSoftware+CheckDownloadReadiness]" +
-            " Download the compiled PLC program to the physical CPU over the network." +
+            " Download the compiled PLC program (and optionally hardware configuration) to the physical CPU or PLCSIM over the network." +
             " The CPU will stop briefly during download and restart automatically (controlled by startAfterDownload)." +
             " SAFETY: Verify no personnel are near the machine before downloading. This changes live PLC behavior." +
             " Workflow: Connect → OpenProject → CompileSoftware → CheckDownloadReadiness → DownloadToPlc → GetOnlineState." +
             " On success State=Success or Warning. On Error check Errors[] for details." +
-            " Default options (keepActualValues=true, consistentBlocksOnly=true) are safe for most scenarios." +
+            " Default options (downloadMode='software', includeHardware=false, keepActualValues=true, consistentBlocksOnly=true)" +
+            " are safe and download software only. For first-time PLCSIM/station setup or after SetDeviceIpAddress / SetPutGetAccess /" +
+            " EnsureSubnet, run CompileHardware and pass downloadMode='hardware_and_software' (or includeHardware=true)." +
             " Set keepActualValues=false only when DB initial values must be reset — this is irreversible." +
             " On a multi-NIC PC the PG/PC interface is picked automatically (the adapter sharing a subnet with the CPU);" +
             " Meta.pgPcRoute reports which one was used. Override with pgPcInterface / targetIpAddress when the pick is wrong." +
@@ -3991,7 +4148,12 @@ namespace TiaMcpServer.ModelContextProtocol
             [Description("password: optional CPU access password. Required when the CPU has download protection configured. Leave empty for unprotected CPUs.")] string password = "",
             [Description("pgPcInterface: optional PG/PC interface name (substring, case-insensitive), e.g. 'PLCSIM' or 'Realtek'. Leave empty to auto-pick the adapter that shares a subnet with the CPU. Run CheckDownloadReadiness to see the available names.")] string pgPcInterface = "",
             [Description("targetIpAddress: optional CPU IP to download to, e.g. '192.168.0.1'. Disambiguates which route to use when the project has several CPU interfaces. Leave empty to auto-pick.")] string targetIpAddress = "",
-            [Description("abortActiveTests: DEFAULT false. When test/commissioning functions are active on the CPU, TIA asks whether to cancel them; false answers 'no action' and the download stops. true cancels them - ask the user first, somebody may be commissioning the machine.")] bool abortActiveTests = false)
+            [Description("abortActiveTests: DEFAULT false. When test/commissioning functions are active on the CPU, TIA asks whether to cancel them; false answers 'no action' and the download stops. true cancels them - ask the user first, somebody may be commissioning the machine.")] bool abortActiveTests = false,
+            [Description("downloadMode: 'software' (default, backward-compatible), 'hardware_and_software' ('all' / 'both'), 'hardware', 'software_changes', or 'hardware_and_software_changes'.")] string downloadMode = "software",
+            [Description("includeHardware: false (default). Set true as a shorthand to add DownloadOptions.Hardware to software/changes downloads.")] bool includeHardware = false,
+            [Description("confidentialPassword: optional master secret password for confidential PLC configuration data prompts (PlcMasterSecretPassword). Falls back to password if empty.")] string confidentialPassword = "",
+            [Description("allowProtectionDowngrade: false (default). Set true to accept ProtectionLevelChanged ('ContinueDownloading') when the download lowers CPU protection.")] bool allowProtectionDowngrade = false,
+            [Description("acceptUnencryptedSensitiveData: true (default). Accept downloading sensitive configuration data unencrypted when no master secret password is used.")] bool acceptUnencryptedSensitiveData = true)
         {
             try
             {
@@ -4004,7 +4166,12 @@ namespace TiaMcpServer.ModelContextProtocol
                     string.IsNullOrWhiteSpace(password) ? null : password,
                     string.IsNullOrWhiteSpace(pgPcInterface) ? null : pgPcInterface,
                     string.IsNullOrWhiteSpace(targetIpAddress) ? null : targetIpAddress,
-                    abortActiveTests);
+                    abortActiveTests,
+                    downloadMode,
+                    includeHardware,
+                    string.IsNullOrEmpty(confidentialPassword) ? null : confidentialPassword,
+                    allowProtectionDowngrade,
+                    acceptUnencryptedSensitiveData);
 
                 // Any failed download is an error, with or without TIA error messages: a State=Error
                 // result with no message text, or an early refusal (no provider, no route), used to

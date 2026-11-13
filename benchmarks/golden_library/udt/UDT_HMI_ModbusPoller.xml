@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <DocumentInfo>
+    <Created>2000-01-01T00:00:00.0000000Z</Created>
+    <ExportSetting>None</ExportSetting>
+    <InstalledProducts />
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="bEnablePoll" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI轮询总使能开关</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bResetStats" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI清零通信统计与故障计数</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="iMaxStationCount" Datatype="Int">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">参与轮询的从站总数 (1..8，默认 4)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="iMaxRetryCount" Datatype="Int">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">单站超时最大重试次数 (0..5，默认 3)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tReplyTimeout" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">单次请求响应超时时间（默认 T#1s）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tInterFrameDelay" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">帧间静默轮询间隔时间（默认 T#50ms）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="iActiveStationIdx" Datatype="Int">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：当前正在轮询的站索引 (1..8)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="diSuccessCount" Datatype="DInt">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：累计成功通信次数</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="diErrorCount" Datatype="DInt">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：累计失败通信次数</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bAnyStationFault" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：存在从站掉线报警</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="wStatus" Datatype="Word">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态码：16#0000一轮完成, 16#7000未激活, 16#7002轮询中, 16#8401从站超时掉线</MultiLanguageText>
+              </Comment>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_HMI_ModbusPoller</Name>
+      <Namespace />
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

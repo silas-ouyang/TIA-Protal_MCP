@@ -1,0 +1,362 @@
+﻿FUNCTION_BLOCK "FB_FIO_Turntable"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常（常闭健康为 TRUE）
+      startBtn : Bool;   // 启动按钮
+      stopBtn : Bool;   // 停止按钮（常闭健康为 TRUE）
+      resetBtn : Bool;   // 复位按钮
+      routeSelect90 : Bool;   // 外部路由请求：TRUE分流至90度支线，FALSE直通
+      atEntry : Bool;   // 入口传送带末端待进盘光电
+      limit0 : Bool;   // 转盘 0 度原位限位开关
+      limit90 : Bool;   // 转盘 90 度旋转到位限位开关
+      frontLimit : Bool;   // 转盘内托盘前端到位光电
+      backLimit : Bool;   // 转盘内托盘后端到位光电
+      atExit0 : Bool;   // 0度直通出口离开光电
+      atExit90 : Bool;   // 90度分流出口离开光电
+   END_VAR
+
+   VAR_OUTPUT 
+      entryConveyor : Bool;   // 入口传送带电机
+      exitConveyor0 : Bool;   // 0度直通出口传送带电机
+      exitConveyor90 : Bool;   // 90度分流出口传送带电机
+      turnTable : Bool;   // 转盘90度旋转驱动（FALSE回0度，TRUE转90度）
+      rollPlus : Bool;   // 转盘台面滚筒正向驱动
+      rollMinus : Bool;   // 转盘台面滚筒反向驱动
+      error : Bool;   // 故障标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_Turntable";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statStep : Int;   // 0:IDLE, 10:HOME_0, 20:WAIT_ENTRY, 30:LOAD_ROLL, 40:ROTATE_90, 50:UNLOAD_0, 60:UNLOAD_90, 70:RETURN_0, 99:FAULT
+      statRunning : Bool;
+      statStopReq : Bool;
+      statStartOld : Bool;
+      statResetOld : Bool;
+      instStepWatchdog : TON_TIME;   // 动作超时看门狗定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempStartRise : Bool;
+      tempResetRise : Bool;
+      tempRoute90 : Bool;
+      tempTimeout : Time;
+      tempEntryConv : Bool;
+      tempExit0 : Bool;
+      tempExit90 : Bool;
+      tempTurn : Bool;
+      tempRollP : Bool;
+      tempRollM : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STEP_IDLE : Int := 0;
+      STEP_HOME_0 : Int := 10;
+      STEP_WAIT_ENTRY : Int := 20;
+      STEP_LOAD_ROLL : Int := 30;
+      STEP_ROTATE_90 : Int := 40;
+      STEP_UNLOAD_0 : Int := 50;
+      STEP_UNLOAD_90 : Int := 60;
+      STEP_RETURN_0 : Int := 70;
+      STEP_FAULT : Int := 99;
+      STATUS_OK : Word := 16#0000;
+      STATUS_IDLE : Word := 16#7000;
+      ERR_TIMEOUT : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempStartRise := FALSE;
+    #tempResetRise := FALSE;
+    #tempRoute90 := FALSE;
+    #tempTimeout := T#5s;
+    #tempEntryConv := FALSE;
+    #tempExit0 := FALSE;
+    #tempExit90 := FALSE;
+    #tempTurn := FALSE;
+    #tempRollP := FALSE;
+    #tempRollM := FALSE;
+
+    // 参数时间获取与保护
+    IF #ioHmi.tActionTimeout > T#0s THEN
+        #tempTimeout := #ioHmi.tActionTimeout;
+    ELSE
+        #tempTimeout := T#5s;
+    END_IF;
+
+    // 分流路由给定
+    #tempRoute90 := #routeSelect90 OR #ioHmi.bRouteTo90Deg;
+
+    // 按钮边沿解析
+    #tempStartRise := (#startBtn OR #ioHmi.bStartCmd) AND (NOT #statStartOld);
+    #statStartOld := #startBtn OR #ioHmi.bStartCmd;
+    IF #ioHmi.bStartCmd THEN #ioHmi.bStartCmd := FALSE; END_IF;
+
+    #tempResetRise := (#resetBtn OR #ioHmi.bResetCmd) AND (NOT #statResetOld);
+    #statResetOld := #resetBtn OR #ioHmi.bResetCmd;
+    IF #ioHmi.bResetCmd THEN #ioHmi.bResetCmd := FALSE; END_IF;
+
+    // 停止按钮处理（常闭，FALSE=按下）
+    IF (NOT #stopBtn) OR #ioHmi.bStopCmd THEN
+        #statStopReq := TRUE;
+    END_IF;
+    IF #ioHmi.bStopCmd THEN #ioHmi.bStopCmd := FALSE; END_IF;
+
+    // 故障复位
+    IF #tempResetRise AND (#statStep = #STEP_FAULT) AND #eStopOk THEN
+        #statStep := #STEP_IDLE;
+        #statRunning := FALSE;
+        #statStopReq := FALSE;
+    END_IF;
+
+    // 急停与双限位冲突保护 (最高优)
+    IF (NOT #eStopOk) OR (#limit0 AND #limit90) THEN
+        #statStep := #STEP_FAULT;
+        #statRunning := FALSE;
+    END_IF;
+
+    // 手动/自动模式分支
+    IF #ioHmi.bManualMode THEN
+        #statRunning := FALSE;
+        #statStep := #STEP_IDLE;
+        #tempEntryConv := FALSE;
+        #tempExit0 := FALSE;
+        #tempExit90 := FALSE;
+        #tempTurn := #ioHmi.bManualTurn;
+        // 机械防撞联锁：正在旋转（两限位均未到）时禁止开滚筒
+        IF #limit0 OR #limit90 THEN
+            #tempRollP := #ioHmi.bManualRollPlus;
+        ELSE
+            #tempRollP := FALSE;
+        END_IF;
+        #tempRollM := FALSE;
+    ELSE
+        CASE #statStep OF
+            #STEP_IDLE:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := FALSE;
+                #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                IF #tempStartRise AND #eStopOk THEN
+                    #statRunning := TRUE;
+                    #statStopReq := FALSE;
+                    #statStep := #STEP_HOME_0;
+                END_IF;
+
+            #STEP_HOME_0:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := (NOT #limit0), PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #limit0 THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_WAIT_ENTRY;
+                END_IF;
+
+            #STEP_WAIT_ENTRY:
+                #tempEntryConv := NOT #statStopReq;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                // 循环尾停机非阻塞响应
+                IF #statStopReq AND (NOT #atEntry) THEN
+                    #tempEntryConv := FALSE;
+                    #statStep := #STEP_IDLE;
+                    #statRunning := FALSE;
+                    #statStopReq := FALSE;
+                ELSIF #atEntry THEN
+                    #statStep := #STEP_LOAD_ROLL;
+                END_IF;
+
+            #STEP_LOAD_ROLL:
+                #tempEntryConv := TRUE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := TRUE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #frontLimit THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    IF #tempRoute90 THEN
+                        #statStep := #STEP_ROTATE_90;
+                    ELSE
+                        #statStep := #STEP_UNLOAD_0;
+                    END_IF;
+                END_IF;
+
+            #STEP_ROTATE_90:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := TRUE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := (NOT #limit90), PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #limit90 THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_UNLOAD_90;
+                END_IF;
+
+            #STEP_UNLOAD_0:
+                #tempEntryConv := FALSE;
+                #tempExit0 := TRUE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := TRUE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #atExit0 AND (NOT #frontLimit) AND (NOT #backLimit) THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #ioHmi.diRoutedCount := #ioHmi.diRoutedCount + 1;
+                    IF #statStopReq THEN
+                        #statStep := #STEP_IDLE;
+                        #statRunning := FALSE;
+                        #statStopReq := FALSE;
+                    ELSE
+                        #statStep := #STEP_WAIT_ENTRY;
+                    END_IF;
+                END_IF;
+
+            #STEP_UNLOAD_90:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := TRUE;
+                #tempTurn := TRUE;
+                #tempRollP := TRUE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #atExit90 AND (NOT #frontLimit) AND (NOT #backLimit) THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #ioHmi.diRoutedCount := #ioHmi.diRoutedCount + 1;
+                    #statStep := #STEP_RETURN_0;
+                END_IF;
+
+            #STEP_RETURN_0:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := TRUE;
+
+                #instStepWatchdog(IN := (NOT #limit0), PT := #tempTimeout);
+                IF #instStepWatchdog.Q THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #limit0 THEN
+                    #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+                    IF #statStopReq THEN
+                        #statStep := #STEP_IDLE;
+                        #statRunning := FALSE;
+                        #statStopReq := FALSE;
+                    ELSE
+                        #statStep := #STEP_WAIT_ENTRY;
+                    END_IF;
+                END_IF;
+
+            #STEP_FAULT:
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := FALSE;
+                #instStepWatchdog(IN := FALSE, PT := #tempTimeout);
+
+            ELSE:
+                #statStep := #STEP_IDLE;
+                #tempEntryConv := FALSE;
+                #tempExit0 := FALSE;
+                #tempExit90 := FALSE;
+                #tempTurn := FALSE;
+                #tempRollP := FALSE;
+                #tempRollM := FALSE;
+                #statRunning := FALSE;
+        END_CASE;
+    END_IF;
+
+    // 机械防撞硬联锁：转盘在旋转过程中严禁驱动滚筒
+    IF (NOT #limit0) AND (NOT #limit90) THEN
+        #tempRollP := FALSE;
+        #tempRollM := FALSE;
+    END_IF;
+
+    // 急停硬切断
+    IF NOT #eStopOk THEN
+        #tempEntryConv := FALSE;
+        #tempExit0 := FALSE;
+        #tempExit90 := FALSE;
+        #tempTurn := FALSE;
+        #tempRollP := FALSE;
+        #tempRollM := FALSE;
+    END_IF;
+
+    // 状态码解算
+    IF NOT #eStopOk THEN
+        #ioHmi.wStatus := #ERR_ESTOP;
+    ELSIF #statStep = #STEP_FAULT THEN
+        #ioHmi.wStatus := #ERR_TIMEOUT;
+    ELSIF #statRunning THEN
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSE
+        #ioHmi.wStatus := #STATUS_IDLE;
+    END_IF;
+
+    // 同步写回 ioHmi
+    #ioHmi.iCurrentStep := #statStep;
+    #ioHmi.bFault := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #entryConveyor := #tempEntryConv AND #eStopOk;
+    #exitConveyor0 := #tempExit0 AND #eStopOk;
+    #exitConveyor90 := #tempExit90 AND #eStopOk;
+    #turnTable := #tempTurn AND #eStopOk;
+    #rollPlus := #tempRollP AND #eStopOk;
+    #rollMinus := #tempRollM AND #eStopOk;
+    #error := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #status := #ioHmi.wStatus;
+END_FUNCTION_BLOCK

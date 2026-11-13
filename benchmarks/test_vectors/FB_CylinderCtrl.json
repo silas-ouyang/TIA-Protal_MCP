@@ -1,0 +1,1013 @@
+{
+  "blockId": "A03",
+  "blockName": "FB_CylinderCtrl",
+  "udtName": "UDT_HMI_CylinderCtrl",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "autoMode": true,
+      "autoExtendCmd": false,
+      "autoRetractCmd": false,
+      "interlockOk": true,
+      "sensorExtended": false,
+      "sensorRetracted": true,
+      "doubleSolenoid": true,
+      "timeout": "T#3s",
+      "reset": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bManualExtendCmd": false,
+      "bManualRetractCmd": false,
+      "bResetCmd": false,
+      "tTimeoutSV": "T#3s",
+      "bIsExtended": false,
+      "bIsRetracted": true,
+      "bValveExtendOut": false,
+      "bValveRetractOut": false,
+      "bFault": false,
+      "wStatus": "16#0000"
+    },
+    "internalState": {
+      "statTargetExtend": false,
+      "statError": false,
+      "statStatus": "16#0000"
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：气缸处于原点缩回到位(sensorRetracted=TRUE)，急停健康，无动作指令，输出全断",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "待机原点位置，inRetractedPos=TRUE，各阀输出断开，status=16#0000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": false,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": true,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：双控电磁阀完整伸出到位与缩回到位全时序循环",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "autoExtendCmd置TRUE，伸出阀输出coilExtend=TRUE，气缸脱离缩回传感器",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": true,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "气缸触碰伸出磁簧开关sensorExtended=TRUE，双电控阀线圈按规格到位断开保持，inExtendedPos=TRUE",
+          "scanCycleOrDuration": "500ms",
+          "elapsedTimeMs": 550,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": true,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": true,
+            "inRetractedPos": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": true,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": true,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "autoRetractCmd置TRUE，缩回阀coilRetract=TRUE，气缸脱离伸出传感器",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 600,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": false,
+            "autoRetractCmd": true,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": true,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": true,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": true,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "气缸触碰缩回磁簧开关sensorRetracted=TRUE，缩回阀断开，inRetractedPos=TRUE完成完整循环",
+          "scanCycleOrDuration": "500ms",
+          "elapsedTimeMs": 1100,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": false,
+            "autoRetractCmd": true,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": true,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停切断：气缸伸出运动中eStopOk掉为FALSE，输出阀立即失电硬切断，报ERR_ESTOP(16#8404)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "运动中急停按下，coilExtend立即硬切断为FALSE，状态锁存16#8404",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1110,
+          "inputs": {
+            "eStopOk": false,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": true,
+            "status": "16#8404"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时尝试复位：eStopOk仍为FALSE，施加reset=TRUE与bResetCmd=TRUE，严禁清除故障或启动阀门",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "急停存在时复位无效，保持16#8404与error=TRUE，线圈全关",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1120,
+          "inputs": {
+            "eStopOk": false,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": true,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": true,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": true,
+            "status": "16#8404"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8404"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "磁性开关双亮冲突卡死：前后传感器同时导通超过200ms防抖诊断时间，触发ERR_SENSOR_CONFLICT(16#8403)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "双磁簧开关同时亮保持250ms，触发16#8403，切断一切输出",
+          "scanCycleOrDuration": "250ms",
+          "elapsedTimeMs": 1370,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": false,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": true,
+            "sensorRetracted": true,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": true,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": true,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "动作超时保护：伸出命令下气缸卡阻，超过T#3s未检测到伸出到位，报ERR_EXTEND_TIMEOUT(16#8401)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "发出伸出命令且脱离缩回位，经过3100ms仍未到达伸出传感器，instExtendTimeout超时触发16#8401",
+          "scanCycleOrDuration": "3100ms",
+          "elapsedTimeMs": 4470,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": true,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：自动模式运行中切入手动模式(ioHmi.bManualMode=TRUE)，自动命令被隔离，由HMI手动点动接管",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "bManualMode切为TRUE，忽略autoExtendCmd，响应bManualRetractCmd驱动缩回阀",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 4520,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": true,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": true,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": true,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "命令与联锁冲突：自动伸出与缩回命令同时为TRUE（缩回高优）；机械防撞联锁interlockOk=FALSE阻断伸出",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "autoExtendCmd与autoRetractCmd同时为TRUE，按规格缩回优先，coilRetract生效",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 4570,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": true,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": false,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": true,
+            "inExtendedPos": false,
+            "inRetractedPos": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": false,
+            "bValveExtendOut": false,
+            "bValveRetractOut": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "interlockOk=FALSE防碰撞联锁触发，autoExtendCmd被硬阻断，coilExtend禁止输出",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 4620,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": true,
+            "autoRetractCmd": false,
+            "interlockOk": false,
+            "sensorExtended": false,
+            "sensorRetracted": true,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": false,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "故障解除与受控复位：超时故障后人工干预恢复到位信号，施加reset脉冲，恢复到待机状态16#0000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "原点位sensorRetracted=TRUE，触发reset=TRUE，statError清除，返回16#0000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 4630,
+          "inputs": {
+            "eStopOk": true,
+            "autoMode": true,
+            "autoExtendCmd": false,
+            "autoRetractCmd": false,
+            "interlockOk": true,
+            "sensorExtended": false,
+            "sensorRetracted": true,
+            "doubleSolenoid": true,
+            "timeout": "T#3s",
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": true,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualExtendCmd": false,
+            "bManualRetractCmd": false,
+            "bResetCmd": true,
+            "tTimeoutSV": "T#3s",
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "coilExtend": false,
+            "coilRetract": false,
+            "inExtendedPos": false,
+            "inRetractedPos": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "bIsExtended": false,
+            "bIsRetracted": true,
+            "bValveExtendOut": false,
+            "bValveRetractOut": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

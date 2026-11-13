@@ -1,0 +1,393 @@
+{
+  "blockId": "LAD04",
+  "blockName": "FB_Conveyor_BatchCounter_LAD",
+  "initialState": {
+    "inputs": {
+      "startCmd": false,
+      "stopCmd": false,
+      "pauseCmd": false,
+      "partSensor": false,
+      "downstreamReady": true,
+      "eStopNC": true,
+      "batchTarget": 3,
+      "clearCount": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_START_HOLD_AND_STOP",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": false,
+            "batchFull": false,
+            "partCount": 0
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": true,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "batchFull": false,
+            "partCount": 0
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "2 scan cycles",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "batchFull": false,
+            "partCount": 0
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": true,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": false,
+            "batchFull": false,
+            "partCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_DOWNSTREAM_PAUSE_HOLD",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": true,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": false,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_COUNT_BATCH_OF_3_WITH_EDGE",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": true,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 0,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "3 scan cycles",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 1,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "partCount": 1,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "partCount": 2,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 5,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "partCount": 2,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 6,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "partCount": 3,
+            "batchFull": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_PAUSE_EDGE_NO_SWALLOW",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": true,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 0
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": true,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": false,
+            "partCount": 0,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 3,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 1,
+            "batchFull": false
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_CLEAR_COUNT_AND_ESTOP",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": true,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": true,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 1,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 1,
+            "batchFull": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": true,
+            "batchTarget": 1,
+            "clearCount": true
+          },
+          "expectedOutputs": {
+            "conveyorRun": true,
+            "partCount": 0,
+            "batchFull": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startCmd": false,
+            "stopCmd": false,
+            "pauseCmd": false,
+            "partSensor": false,
+            "downstreamReady": true,
+            "eStopNC": false,
+            "batchTarget": 1,
+            "clearCount": false
+          },
+          "expectedOutputs": {
+            "conveyorRun": false,
+            "partCount": 0,
+            "batchFull": false
+          }
+        }
+      ]
+    }
+  ]
+}

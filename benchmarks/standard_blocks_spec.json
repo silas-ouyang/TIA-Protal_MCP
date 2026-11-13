@@ -1,0 +1,1256 @@
+{
+  "metadata": {
+    "title": "工控标准功能块库（适配 Factory I/O）与配套 UDT_HMI 规格书",
+    "version": "1.0.0",
+    "targetTiaVersion": "V20",
+    "targetCpuFamily": "S7-1200 / S7-1500",
+    "softwarePath": "PLC_1",
+    "codingStandards": [
+      "强制启用 { S7_Optimized_Access := 'TRUE' } (DA003)",
+      "块内零全局变量，只通过 Input/Output/InOut 形参交换数据 (RU004/DA005)",
+      "每个标准块配套定义 UDT_HMI_xxx 结构体并挂载在 InOut 接口 ioHmi 上按引用传递 (PE003/DA007)",
+      "FB 内部定时器统一声明在 VAR (Static) 区作为多重背景实例，类型为 TON_TIME / TOF_TIME / TP_TIME，前缀 inst (AL001)",
+      "静态变量加 stat 前缀、临时变量加 temp 前缀且先写后读 (SE002)、局部常量全大写 UPPER_CASE (NF007/NF008)",
+      "禁止回读 Output 形参，块内使用 stat/temp 计算并在末尾集中写入 Output (DA008)",
+      "所有 CASE 状态机必须包含 ELSE 异常捕获分支 (DA017)，严禁使用 WHILE/REPEAT 阻塞扫描周期",
+      "急停信号采用常闭健康极性 (eStopOk = TRUE 表示正常，FALSE 表示急停按下)，急停触发时必须在块尾硬切断全部执行器输出"
+    ]
+  },
+  "blocks": [
+    {
+      "id": "A01",
+      "part": "Part A",
+      "name": "FC_AnalogScaleAlarm",
+      "type": "FC",
+      "returnType": "Void",
+      "title": "模拟量线性定标与四限（HH/H/L/LL）断线超限报警 FC",
+      "udt": {
+        "name": "UDT_HMI_AnalogScale",
+        "members": [
+          { "name": "bManualOverride", "dataType": "Bool", "comment": "HMI手动仿真覆盖使能" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障与锁存报警复位触发" },
+          { "name": "rManualValue", "dataType": "Real", "comment": "HMI手动强制工程值给定" },
+          { "name": "rRawMin", "dataType": "Real", "comment": "原始码值下限（默认 0.0 或 5530.0）" },
+          { "name": "rRawMax", "dataType": "Real", "comment": "原始码值上限（默认 27648.0）" },
+          { "name": "rEngMin", "dataType": "Real", "comment": "工程量下限（如 0.0）" },
+          { "name": "rEngMax", "dataType": "Real", "comment": "工程量上限（如 100.0）" },
+          { "name": "rLimitHH", "dataType": "Real", "comment": "高高限报警阈值" },
+          { "name": "rLimitH", "dataType": "Real", "comment": "高限警告阈值" },
+          { "name": "rLimitL", "dataType": "Real", "comment": "低限警告阈值" },
+          { "name": "rLimitLL", "dataType": "Real", "comment": "低低限报警阈值" },
+          { "name": "rScaledValue", "dataType": "Real", "comment": "状态反馈：当前标定工程值" },
+          { "name": "bAlarmHH", "dataType": "Bool", "comment": "状态反馈：高高限报警" },
+          { "name": "bAlarmH", "dataType": "Bool", "comment": "状态反馈：高限报警" },
+          { "name": "bAlarmL", "dataType": "Bool", "comment": "状态反馈：低限报警" },
+          { "name": "bAlarmLL", "dataType": "Bool", "comment": "状态反馈：低低限报警" },
+          { "name": "bWireBreak", "dataType": "Bool", "comment": "状态反馈：断线或溢出故障" },
+          { "name": "wStatus", "dataType": "Word", "comment": "故障码：16#0000正常, 16#8200量程除零, 16#8201阈值顺序错, 16#8401断线/溢出" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "rawInput", "dataType": "Int", "comment": "模拟量通道原始输入值（如 %IW64，0..27648）" },
+          { "name": "bipolar", "dataType": "Bool", "comment": "TRUE: 双极性(-27648..27648), FALSE: 单极性(0..27648)" },
+          { "name": "reset", "dataType": "Bool", "comment": "外部复位输入" }
+        ],
+        "output": [
+          { "name": "scaledValue", "dataType": "Real", "comment": "标定后的工程量输出" },
+          { "name": "alarmHH", "dataType": "Bool", "comment": "高高限报警输出" },
+          { "name": "alarmH", "dataType": "Bool", "comment": "高限警告输出" },
+          { "name": "alarmL", "dataType": "Bool", "comment": "低限警告输出" },
+          { "name": "alarmLL", "dataType": "Bool", "comment": "低低限报警输出" },
+          { "name": "error", "dataType": "Bool", "comment": "综合错误标志（断线或参数错误）" },
+          { "name": "status", "dataType": "Word", "comment": "PLCopen 标准状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_AnalogScale\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "temp": [
+          { "name": "tempRawReal", "dataType": "Real" },
+          { "name": "tempSpanRaw", "dataType": "Real" },
+          { "name": "tempScaled", "dataType": "Real" },
+          { "name": "tempWireFault", "dataType": "Bool" },
+          { "name": "tempError", "dataType": "Bool" },
+          { "name": "tempStatus", "dataType": "Word" },
+          { "name": "tempHH", "dataType": "Bool" },
+          { "name": "tempH", "dataType": "Bool" },
+          { "name": "tempL", "dataType": "Bool" },
+          { "name": "tempLL", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "RAW_OVERFLOW", "dataType": "Int", "value": "32511" },
+          { "name": "RAW_UNDERFLOW_UNI", "dataType": "Int", "value": "-4864" },
+          { "name": "RAW_UNDERFLOW_BIP", "dataType": "Int", "value": "-32512" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "ERR_ZERO_SPAN", "dataType": "Word", "value": "16#8200" },
+          { "name": "ERR_LIMIT_CFG", "dataType": "Word", "value": "16#8201" },
+          { "name": "ERR_WIRE_BREAK", "dataType": "Word", "value": "16#8401" }
+        ]
+      },
+      "logicSpec": [
+        "1. 校验 ioHmi.rRawMax - ioHmi.rRawMin 的绝对值是否 < 1.0E-5，或者 ioHmi.rEngMin >= ioHmi.rEngMax，若是则报 ERR_ZERO_SPAN (16#8200) 并安全输出 0.0。",
+        "2. 校验报警阈值单调性 (rLimitLL <= rLimitL <= rLimitH <= rLimitHH)，若违背则报 ERR_LIMIT_CFG (16#8201)。",
+        "3. 检测原始通道断线/上溢：rawInput > RAW_OVERFLOW 或 (NOT bipolar AND rawInput < RAW_UNDERFLOW_UNI) 或 (bipolar AND rawInput < RAW_UNDERFLOW_BIP) 时置位 tempWireFault 与 ERR_WIRE_BREAK (16#8401)。",
+        "4. 若 ioHmi.bManualOverride 为 TRUE，则直接采用 ioHmi.rManualValue 作为工程值，否则执行线性换算并在 [rEngMin, rEngMax] 内限幅。",
+        "5. 比较工程值与 HH/H/L/LL 阈值，并将所有状态与故障码同步写回 ioHmi 及 Output。"
+      ]
+    },
+    {
+      "id": "A02",
+      "part": "Part A",
+      "name": "FB_LowPassFilter",
+      "type": "FB",
+      "title": "一阶低通惯性滤波 FB（带冷启动无阶跃同步与尖峰剔除）",
+      "udt": {
+        "name": "UDT_HMI_LowPassFilter",
+        "members": [
+          { "name": "bBypassFilter", "dataType": "Bool", "comment": "HMI手动旁路滤波（直通模式）" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI手动复位同步触发" },
+          { "name": "rAlpha", "dataType": "Real", "comment": "滤波系数 Alpha (0.01..1.0，越小越平滑)" },
+          { "name": "rMaxDeltaPerScan", "dataType": "Real", "comment": "单周期最大允许突变幅值（<=0.0 表示不限制）" },
+          { "name": "rRawInput", "dataType": "Real", "comment": "状态反馈：原始输入值" },
+          { "name": "rFilteredOutput", "dataType": "Real", "comment": "状态反馈：滤波后输出值" },
+          { "name": "bInitialized", "dataType": "Bool", "comment": "状态反馈：已完成冷启动同步" },
+          { "name": "bError", "dataType": "Bool", "comment": "状态反馈：参数故障标志" },
+          { "name": "wStatus", "dataType": "Word", "comment": "故障码：16#0000正常, 16#7000未使能, 16#8200系数超范围" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "enable", "dataType": "Bool", "comment": "滤波功能使能" },
+          { "name": "rawValue", "dataType": "Real", "comment": "当前周期原始采样值" },
+          { "name": "alpha", "dataType": "Real", "comment": "默认滤波系数 (0.01..1.0)，当 ioHmi.rAlpha <= 0 时生效" },
+          { "name": "reset", "dataType": "Bool", "comment": "复位并立即将输出同步到当前输入" }
+        ],
+        "output": [
+          { "name": "filteredValue", "dataType": "Real", "comment": "一阶低通滤波输出值" },
+          { "name": "valid", "dataType": "Bool", "comment": "输出数据有效" },
+          { "name": "error", "dataType": "Bool", "comment": "参数错误标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_LowPassFilter\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statPrevOut", "dataType": "Real", "comment": "上一周期滤波输出值" },
+          { "name": "statInitialized", "dataType": "Bool", "comment": "冷启动已初始化标志" }
+        ],
+        "temp": [
+          { "name": "tempEffAlpha", "dataType": "Real" },
+          { "name": "tempInClamped", "dataType": "Real" },
+          { "name": "tempDiff", "dataType": "Real" },
+          { "name": "tempError", "dataType": "Bool" },
+          { "name": "tempStatus", "dataType": "Word" }
+        ],
+        "constant": [
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_NO_CALL", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_ALPHA_RANGE", "dataType": "Word", "value": "16#8200" }
+        ]
+      },
+      "logicSpec": [
+        "1. 当 enable = FALSE 时，statInitialized := FALSE，filteredValue := rawValue，status := 16#7000。",
+        "2. 选取有效滤波系数：若 ioHmi.rAlpha > 0.0 则用 ioHmi.rAlpha，否则用输入形参 alpha。校验范围是否在 (0.0, 1.0] 内，越界则报 ERR_ALPHA_RANGE (16#8200) 并将有效系数钳位至 1.0。",
+        "3. 冷启动或复位 (reset OR ioHmi.bResetCmd OR NOT statInitialized) 时：statPrevOut := rawValue，statInitialized := TRUE，消除从 0 爬升的阶跃滞后。",
+        "4. 若 ioHmi.bBypassFilter 为 TRUE，则 statPrevOut := rawValue；否则按 y(k) = y(k-1) + alpha * (x(k) - y(k-1)) 更新（若 rMaxDeltaPerScan > 0.0 则先对 x(k)-y(k-1) 限幅）。",
+        "5. 清除 ioHmi.bResetCmd 自复位命令并更新 ioHmi 状态反馈与 Output。"
+      ]
+    },
+    {
+      "id": "A03",
+      "part": "Part A",
+      "name": "FB_CylinderCtrl",
+      "type": "FB",
+      "title": "气缸双向到位监控与超时保护标准块 FB（支持单控/双控电磁阀）",
+      "udt": {
+        "name": "UDT_HMI_CylinderCtrl",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE: 手动模式, FALSE: 自动模式" },
+          { "name": "bManualExtendCmd", "dataType": "Bool", "comment": "HMI手动伸出触发" },
+          { "name": "bManualRetractCmd", "dataType": "Bool", "comment": "HMI手动缩回触发" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位按钮" },
+          { "name": "tTimeoutSV", "dataType": "Time", "comment": "动作超时设定值（默认 T#3s）" },
+          { "name": "bIsExtended", "dataType": "Bool", "comment": "状态反馈：伸出到位" },
+          { "name": "bIsRetracted", "dataType": "Bool", "comment": "状态反馈：缩回到位" },
+          { "name": "bValveExtendOut", "dataType": "Bool", "comment": "状态反馈：伸出阀输出状态" },
+          { "name": "bValveRetractOut", "dataType": "Bool", "comment": "状态反馈：缩回阀输出状态" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：综合故障标志" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#8401伸出超时, 16#8402缩回超时, 16#8403前后磁性开关同时亮, 16#8404急停切断" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常信号（常闭健康为 TRUE，FALSE 立即失电缩回/切断）" },
+          { "name": "autoMode", "dataType": "Bool", "comment": "外部自动模式选择" },
+          { "name": "autoExtendCmd", "dataType": "Bool", "comment": "自动模式伸出请求" },
+          { "name": "autoRetractCmd", "dataType": "Bool", "comment": "自动模式缩回请求" },
+          { "name": "interlockOk", "dataType": "Bool", "comment": "机械防碰撞安全联锁允许（TRUE 允许动作）" },
+          { "name": "sensorExtended", "dataType": "Bool", "comment": "气缸伸出到位磁性开关反馈" },
+          { "name": "sensorRetracted", "dataType": "Bool", "comment": "气缸缩回到位磁性开关反馈" },
+          { "name": "doubleSolenoid", "dataType": "Bool", "comment": "TRUE: 双电控保持阀, FALSE: 单电控弹簧复位阀" },
+          { "name": "timeout", "dataType": "Time", "comment": "默认超时时间（如 T#3s）" },
+          { "name": "reset", "dataType": "Bool", "comment": "外部故障复位" }
+        ],
+        "output": [
+          { "name": "coilExtend", "dataType": "Bool", "comment": "气缸伸出电磁阀输出" },
+          { "name": "coilRetract", "dataType": "Bool", "comment": "气缸缩回电磁阀输出" },
+          { "name": "inExtendedPos", "dataType": "Bool", "comment": "已稳定伸出到位" },
+          { "name": "inRetractedPos", "dataType": "Bool", "comment": "已稳定缩回到位" },
+          { "name": "error", "dataType": "Bool", "comment": "气缸故障报警" },
+          { "name": "status", "dataType": "Word", "comment": "状态/故障代码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_CylinderCtrl\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statTargetExtend", "dataType": "Bool", "comment": "当前目标方向：TRUE伸出，FALSE缩回" },
+          { "name": "statError", "dataType": "Bool", "comment": "故障锁存标志" },
+          { "name": "statStatus", "dataType": "Word", "comment": "状态字锁存" },
+          { "name": "instExtendTimeout", "dataType": "TON_TIME", "comment": "伸出超时多重背景定时器" },
+          { "name": "instRetractTimeout", "dataType": "TON_TIME", "comment": "缩回超时多重背景定时器" },
+          { "name": "instSensorBothTon", "dataType": "TON_TIME", "comment": "双传感器同时导通防抖诊断定时器" }
+        ],
+        "temp": [
+          { "name": "tempEffTimeout", "dataType": "Time" },
+          { "name": "tempReqExtend", "dataType": "Bool" },
+          { "name": "tempReqRetract", "dataType": "Bool" },
+          { "name": "tempCoilExt", "dataType": "Bool" },
+          { "name": "tempCoilRet", "dataType": "Bool" },
+          { "name": "tempReset", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "ERR_EXTEND_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_RETRACT_TIMEOUT", "dataType": "Word", "value": "16#8402" },
+          { "name": "ERR_SENSOR_CONFLICT", "dataType": "Word", "value": "16#8403" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8404" }
+        ]
+      },
+      "logicSpec": [
+        "1. 急停最高优：当 NOT eStopOk 时，立即将 statTargetExtend := FALSE，输出线圈 tempCoilExt := FALSE, tempCoilRet := FALSE，报 ERR_ESTOP (16#8404)。",
+        "2. 磁性开关冲突诊断：sensorExtended AND sensorRetracted 持续超过 T#200ms 时锁存 ERR_SENSOR_CONFLICT (16#8403)。",
+        "3. 手自动命令源选择：autoMode AND NOT ioHmi.bManualMode 时响应 autoExtendCmd/autoRetractCmd；否则响应 ioHmi.bManualExtendCmd/bManualRetractCmd（缩回优先于伸出，且伸出受 interlockOk 联锁限制）。",
+        "4. 超时保护：目标为伸出且 NOT sensorExtended 时启动 instExtendTimeout；目标为缩回且 NOT sensorRetracted 时启动 instRetractTimeout。超时置位 statError 并切断输出。",
+        "5. 单/双电控输出：单电控时 coilExtend := statTargetExtend AND NOT statError AND eStopOk，coilRetract := FALSE；双电控时伸出到位或缩回到位可根据状态驱动双线圈并嚴格互锁 NOT (coilExtend AND coilRetract)。"
+      ]
+    },
+    {
+      "id": "A04",
+      "part": "Part A",
+      "name": "FB_MotorRevCtrl",
+      "type": "FB",
+      "title": "电机正反转软硬件互锁、换向死区延时与热过载/反馈故障标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_MotorRevCtrl",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "HMI手自动切换（TRUE手动）" },
+          { "name": "bManualFwdCmd", "dataType": "Bool", "comment": "HMI手动正转点动/启动" },
+          { "name": "bManualRevCmd", "dataType": "Bool", "comment": "HMI手动反转点动/启动" },
+          { "name": "bManualStopCmd", "dataType": "Bool", "comment": "HMI手动停止" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位命令" },
+          { "name": "tFeedbackTimeout", "dataType": "Time", "comment": "接触器吸合反馈超时时间（默认 T#2s）" },
+          { "name": "tReverseDeadband", "dataType": "Time", "comment": "正反转切换停机死区时间（默认 T#1s）" },
+          { "name": "bRunningFwd", "dataType": "Bool", "comment": "状态反馈：正在正转" },
+          { "name": "bRunningRev", "dataType": "Bool", "comment": "状态反馈：正在反转" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：综合故障" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#8401热过载, 16#8402接触器反馈超时, 16#8403急停激活" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停回路正常（常闭健康为 TRUE）" },
+          { "name": "thermalOk", "dataType": "Bool", "comment": "热继电器/断路器正常（常闭健康为 TRUE）" },
+          { "name": "interlockOk", "dataType": "Bool", "comment": "外部工艺运行允许联锁" },
+          { "name": "autoMode", "dataType": "Bool", "comment": "外部自动模式使能" },
+          { "name": "autoFwdCmd", "dataType": "Bool", "comment": "自动正转命令" },
+          { "name": "autoRevCmd", "dataType": "Bool", "comment": "自动反转命令" },
+          { "name": "fbkFwd", "dataType": "Bool", "comment": "正转接触器辅助常开触点反馈" },
+          { "name": "fbkRev", "dataType": "Bool", "comment": "反转接触器辅助常开触点反馈" },
+          { "name": "useFeedback", "dataType": "Bool", "comment": "TRUE: 启用接触器反馈超时校验；FALSE: 无反馈仿真模式" },
+          { "name": "reset", "dataType": "Bool", "comment": "外部故障复位" }
+        ],
+        "output": [
+          { "name": "contactorFwd", "dataType": "Bool", "comment": "正转接触器 KM1 输出" },
+          { "name": "contactorRev", "dataType": "Bool", "comment": "反转接触器 KM2 输出" },
+          { "name": "running", "dataType": "Bool", "comment": "电机运行中指示" },
+          { "name": "error", "dataType": "Bool", "comment": "电机故障报警输出" },
+          { "name": "status", "dataType": "Word", "comment": "状态/故障代码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_MotorRevCtrl\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statState", "dataType": "Int", "comment": "0:停机, 10:正转运行, 20:反转运行, 30:换向死区等待, 99:故障锁存" },
+          { "name": "statTargetDir", "dataType": "Int", "comment": "换向目标方向：1正转, 2反转" },
+          { "name": "statError", "dataType": "Bool" },
+          { "name": "statStatus", "dataType": "Word" },
+          { "name": "instDeadbandTimer", "dataType": "TON_TIME", "comment": "正反转切换死区定时器" },
+          { "name": "instFbkTimer", "dataType": "TON_TIME", "comment": "接触器吸合/释放反馈超时定时器" }
+        ],
+        "temp": [
+          { "name": "tempReqFwd", "dataType": "Bool" },
+          { "name": "tempReqRev", "dataType": "Bool" },
+          { "name": "tempOutFwd", "dataType": "Bool" },
+          { "name": "tempOutRev", "dataType": "Bool" },
+          { "name": "tempDeadbandTime", "dataType": "Time" },
+          { "name": "tempFbkTime", "dataType": "Time" },
+          { "name": "tempFbkMismatch", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STATE_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STATE_FWD", "dataType": "Int", "value": "10" },
+          { "name": "STATE_REV", "dataType": "Int", "value": "20" },
+          { "name": "STATE_DEADBAND", "dataType": "Int", "value": "30" },
+          { "name": "STATE_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "ERR_THERMAL", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_FBK_TIMEOUT", "dataType": "Word", "value": "16#8402" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8403" }
+        ]
+      },
+      "logicSpec": [
+        "1. 安全保护优先：若 NOT eStopOk 则立即进 STATE_FAULT (16#8403)；若 NOT thermalOk 则立即进 STATE_FAULT (16#8401)。",
+        "2. 正反转命令同时为 TRUE 时视为停机请求（防误操作冲突）。",
+        "3. 从正转切反转或从反转切正转时，必须先切断输出并进入 STATE_DEADBAND 计时（默认 T#1s），死区时间到且反方向触点已断开后才允许吸合目标方向接触器。",
+        "4. 当 useFeedback = TRUE 时，监控输出与 fbkFwd/fbkRev 不一致时间，超时报 ERR_FBK_TIMEOUT (16#8402)。",
+        "5. 块尾硬互锁：contactorFwd := tempOutFwd AND NOT tempOutRev AND eStopOk AND thermalOk；contactorRev := tempOutRev AND NOT tempOutFwd AND eStopOk AND thermalOk。"
+      ]
+    },
+    {
+      "id": "A05",
+      "part": "Part A",
+      "name": "FB_RingFifo",
+      "type": "FB",
+      "title": "环形 FIFO 物料/任务队列管理标准块 FB（O(1) 指针寻址）",
+      "udt": {
+        "name": "UDT_HMI_RingFifo",
+        "members": [
+          { "name": "bManualEnqueue", "dataType": "Bool", "comment": "HMI手动入队触发" },
+          { "name": "bManualDequeue", "dataType": "Bool", "comment": "HMI手动出队触发" },
+          { "name": "bClearCmd", "dataType": "Bool", "comment": "HMI清空队列命令" },
+          { "name": "diManualItemIn", "dataType": "DInt", "comment": "HMI手动入队数值" },
+          { "name": "diLastItemOut", "dataType": "DInt", "comment": "状态反馈：最近出队数值" },
+          { "name": "diHeadPreview", "dataType": "DInt", "comment": "状态反馈：队首待出队元素预览" },
+          { "name": "iCount", "dataType": "Int", "comment": "状态反馈：当前队列元素数量" },
+          { "name": "bIsEmpty", "dataType": "Bool", "comment": "状态反馈：队列空" },
+          { "name": "bIsFull", "dataType": "Bool", "comment": "状态反馈：队列满" },
+          { "name": "bError", "dataType": "Bool", "comment": "状态反馈：溢出或下溢错误" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#8001满入溢出, 16#8002空出下溢" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "enqueue", "dataType": "Bool", "comment": "入队上升沿触发" },
+          { "name": "dequeue", "dataType": "Bool", "comment": "出队上升沿触发" },
+          { "name": "itemIn", "dataType": "DInt", "comment": "外部入队数据（物料ID/高度编码/库位号）" },
+          { "name": "clear", "dataType": "Bool", "comment": "外部清空队列复位" }
+        ],
+        "output": [
+          { "name": "itemOut", "dataType": "DInt", "comment": "出队数据输出" },
+          { "name": "count", "dataType": "Int", "comment": "当前有效元素个数 (0..32)" },
+          { "name": "isEmpty", "dataType": "Bool", "comment": "队列为空标志" },
+          { "name": "isFull", "dataType": "Bool", "comment": "队列已满标志" },
+          { "name": "error", "dataType": "Bool", "comment": "操作错误标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_RingFifo\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statBuffer", "dataType": "Array[0..31] of DInt", "comment": "容量32的固定环形数组" },
+          { "name": "statHead", "dataType": "DInt", "comment": "写入尾指针 (0..31)" },
+          { "name": "statTail", "dataType": "DInt", "comment": "读取头指针 (0..31)" },
+          { "name": "statCount", "dataType": "Int", "comment": "当前元素计数" },
+          { "name": "statLastOut", "dataType": "DInt", "comment": "最近一次出队值" },
+          { "name": "statEnqOld", "dataType": "Bool", "comment": "入队边沿存储" },
+          { "name": "statDeqOld", "dataType": "Bool", "comment": "出队边沿存储" }
+        ],
+        "temp": [
+          { "name": "tempEnqReq", "dataType": "Bool" },
+          { "name": "tempDeqReq", "dataType": "Bool" },
+          { "name": "tempEnqRise", "dataType": "Bool" },
+          { "name": "tempDeqRise", "dataType": "Bool" },
+          { "name": "tempDataIn", "dataType": "DInt" },
+          { "name": "tempError", "dataType": "Bool" },
+          { "name": "tempStatus", "dataType": "Word" }
+        ],
+        "constant": [
+          { "name": "CAPACITY", "dataType": "Int", "value": "32" },
+          { "name": "CAPACITY_DINT", "dataType": "DInt", "value": "32" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "ERR_QUEUE_FULL", "dataType": "Word", "value": "16#8001" },
+          { "name": "ERR_QUEUE_EMPTY", "dataType": "Word", "value": "16#8002" }
+        ]
+      },
+      "logicSpec": [
+        "1. 清空优先：当 clear OR ioHmi.bClearCmd 为 TRUE 时，重置 statHead := 0, statTail := 0, statCount := 0, statLastOut := 0，并清零 ioHmi.bClearCmd。",
+        "2. 合并外部与 HMI 入队/出队请求，检测上升沿 tempEnqRise 与 tempDeqRise。",
+        "3. 入队上升沿：若 statCount >= CAPACITY 则置 ERR_QUEUE_FULL (16#8001)；否则写入 statBuffer[statHead]，statHead := (statHead + 1) MOD CAPACITY_DINT，statCount + 1。",
+        "4. 出队上升沿：若 statCount <= 0 则置 ERR_QUEUE_EMPTY (16#8002)；否则取出 statBuffer[statTail] 存入 statLastOut，statTail := (statTail + 1) MOD CAPACITY_DINT，statCount - 1。",
+        "5. 更新队首预览 ioHmi.diHeadPreview（非空时为 statBuffer[statTail]，空时为 0）及所有 Output。"
+      ]
+    },
+    {
+      "id": "A06",
+      "part": "Part A",
+      "name": "FC_ButtonDebounceToggle",
+      "type": "FC",
+      "returnType": "Void",
+      "title": "按钮防抖滤波与单键启停双稳态翻转标准块 FC",
+      "udt": {
+        "name": "UDT_HMI_ButtonDebounce",
+        "members": [
+          { "name": "bHmiToggleCmd", "dataType": "Bool", "comment": "HMI软按钮翻转触发" },
+          { "name": "bHmiForceOn", "dataType": "Bool", "comment": "HMI强制置位开机" },
+          { "name": "bHmiForceOff", "dataType": "Bool", "comment": "HMI强制复位关机" },
+          { "name": "tDebounceTime", "dataType": "Time", "comment": "防抖延时时间设定（默认 T#50ms）" },
+          { "name": "tElapsedMs", "dataType": "DInt", "comment": "内部保持：当前防抖累计毫秒数" },
+          { "name": "bDebouncedState", "dataType": "Bool", "comment": "状态反馈：防抖后的稳定按钮状态" },
+          { "name": "bPrevDebounced", "dataType": "Bool", "comment": "内部保持：上一周期防抖状态（用于取沿）" },
+          { "name": "bToggleOut", "dataType": "Bool", "comment": "状态反馈：当前单键启停翻转锁存输出" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#8401急停强制释放" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "rawButton", "dataType": "Bool", "comment": "现场物理按钮原始输入" },
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常信号（FALSE 时强制复位翻转输出）" },
+          { "name": "reset", "dataType": "Bool", "comment": "外部强制复位" },
+          { "name": "scanCycleMs", "dataType": "Int", "comment": "当前调用周期毫秒数（如 10ms，<=0 时默认按 10ms 计）" }
+        ],
+        "output": [
+          { "name": "debouncedOut", "dataType": "Bool", "comment": "防抖后的稳定按钮电平" },
+          { "name": "risingPulse", "dataType": "Bool", "comment": "防抖后单周期上升沿脉冲" },
+          { "name": "fallingPulse", "dataType": "Bool", "comment": "防抖后单周期下降沿脉冲" },
+          { "name": "toggleState", "dataType": "Bool", "comment": "单键启停双稳态输出" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_ButtonDebounce\"", "comment": "HMI交互与跨周期状态保持结构体" }
+        ],
+        "temp": [
+          { "name": "tempStepMs", "dataType": "DInt" },
+          { "name": "tempTargetMs", "dataType": "DInt" },
+          { "name": "tempRise", "dataType": "Bool" },
+          { "name": "tempFall", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "DEFAULT_DEBOUNCE_MS", "dataType": "DInt", "value": "50" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8401" }
+        ]
+      },
+      "logicSpec": [
+        "1. 作为纯 FC，跨周期防抖计时与边沿状态全部保存在 InOut 的 ioHmi 结构体中，严禁访问全局 DB 或 M 区。",
+        "2. 当 rawButton 与 ioHmi.bDebouncedState 不一致时累加 ioHmi.tElapsedMs；达到防抖阈值 tempTargetMs 后更新 ioHmi.bDebouncedState 并清零计时；一致时清零计时。",
+        "3. 根据 ioHmi.bDebouncedState 与 ioHmi.bPrevDebounced 解算单周期上升沿 tempRise 和下降沿 tempFall，随后更新 bPrevDebounced。",
+        "4. 双稳态翻转优先级：NOT eStopOk OR reset OR ioHmi.bHmiForceOff (最高优置 FALSE) > ioHmi.bHmiForceOn (置 TRUE) > (tempRise OR ioHmi.bHmiToggleCmd) 翻转 ioHmi.bToggleOut。",
+        "5. 自动清零单次软触发位 ioHmi.bHmiToggleCmd / bHmiForceOn / bHmiForceOff 并输出所有引脚。"
+      ]
+    },
+    {
+      "id": "A07",
+      "part": "Part A",
+      "name": "FB_ModbusPoller",
+      "type": "FB",
+      "title": "Modbus RTU/TCP 多从站轮询状态调度器标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_ModbusPoller",
+        "members": [
+          { "name": "bEnablePoll", "dataType": "Bool", "comment": "HMI轮询总使能开关" },
+          { "name": "bResetStats", "dataType": "Bool", "comment": "HMI清零通信统计与故障计数" },
+          { "name": "iMaxStationCount", "dataType": "Int", "comment": "参与轮询的从站总数 (1..8，默认 4)" },
+          { "name": "iMaxRetryCount", "dataType": "Int", "comment": "单站超时最大重试次数 (0..5，默认 3)" },
+          { "name": "tReplyTimeout", "dataType": "Time", "comment": "单次请求响应超时时间（默认 T#1s）" },
+          { "name": "tInterFrameDelay", "dataType": "Time", "comment": "帧间静默轮询间隔时间（默认 T#50ms）" },
+          { "name": "iActiveStationIdx", "dataType": "Int", "comment": "状态反馈：当前正在轮询的站索引 (1..8)" },
+          { "name": "diSuccessCount", "dataType": "DInt", "comment": "状态反馈：累计成功通信次数" },
+          { "name": "diErrorCount", "dataType": "DInt", "comment": "状态反馈：累计失败通信次数" },
+          { "name": "bAnyStationFault", "dataType": "Bool", "comment": "状态反馈：存在从站掉线报警" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000一轮完成, 16#7000未激活, 16#7002轮询中, 16#8401从站超时掉线" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "enable", "dataType": "Bool", "comment": "轮询调度器使能" },
+          { "name": "reqDone", "dataType": "Bool", "comment": "底层 MB_MASTER / MB_CLIENT 完成标志" },
+          { "name": "reqBusy", "dataType": "Bool", "comment": "底层通信指令忙标志" },
+          { "name": "reqError", "dataType": "Bool", "comment": "底层通信指令错误标志" },
+          { "name": "reqStatus", "dataType": "Word", "comment": "底层通信指令错误代码" },
+          { "name": "reset", "dataType": "Bool", "comment": "外部故障与统计复位" }
+        ],
+        "output": [
+          { "name": "mbReq", "dataType": "Bool", "comment": "输出给 MB_MASTER/MB_CLIENT 的 REQ 触发信号" },
+          { "name": "currentStation", "dataType": "Int", "comment": "当前激活从站号 (1..8)" },
+          { "name": "busy", "dataType": "Bool", "comment": "调度器运行忙" },
+          { "name": "error", "dataType": "Bool", "comment": "通信超时或从站掉线错误" },
+          { "name": "status", "dataType": "Word", "comment": "PLCopen 状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_ModbusPoller\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statState", "dataType": "Int", "comment": "0:IDLE, 10:SEND_REQ, 20:WAIT_RESP, 30:RETRY_DECIDE, 40:INTER_FRAME_WAIT" },
+          { "name": "statStationIdx", "dataType": "Int", "comment": "当前从站号 1..8" },
+          { "name": "statRetryCnt", "dataType": "Int", "comment": "当前从站已重试次数" },
+          { "name": "statLastFailedStation", "dataType": "Int", "comment": "最近掉线从站号" },
+          { "name": "statError", "dataType": "Bool" },
+          { "name": "statStatus", "dataType": "Word" },
+          { "name": "instTimeoutTimer", "dataType": "TON_TIME", "comment": "响应超时定时器" },
+          { "name": "instGapTimer", "dataType": "TON_TIME", "comment": "帧间间隔定时器" }
+        ],
+        "temp": [
+          { "name": "tempMaxStations", "dataType": "Int" },
+          { "name": "tempMaxRetries", "dataType": "Int" },
+          { "name": "tempTimeout", "dataType": "Time" },
+          { "name": "tempGapTime", "dataType": "Time" },
+          { "name": "tempMbReq", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STATE_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STATE_SEND_REQ", "dataType": "Int", "value": "10" },
+          { "name": "STATE_WAIT_RESP", "dataType": "Int", "value": "20" },
+          { "name": "STATE_RETRY", "dataType": "Int", "value": "30" },
+          { "name": "STATE_GAP_WAIT", "dataType": "Int", "value": "40" },
+          { "name": "STATUS_FINISHED", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_NO_CALL", "dataType": "Word", "value": "16#7000" },
+          { "name": "STATUS_BUSY", "dataType": "Word", "value": "16#7002" },
+          { "name": "ERR_STATION_TIMEOUT", "dataType": "Word", "value": "16#8401" }
+        ]
+      },
+      "logicSpec": [
+        "1. 遵循 PLCopen 状态机设计：在 STATE_SEND_REQ 拉高 mbReq，进入 STATE_WAIT_RESP 等待 reqDone、reqError 或 instTimeoutTimer.Q。",
+        "2. 若收到 reqDone：累计 diSuccessCount + 1，清零 statRetryCnt，进入 STATE_GAP_WAIT 等待帧间静默后切下一从站。",
+        "3. 若收到 reqError 或超时：进入 STATE_RETRY，若 statRetryCnt < tempMaxRetries 则重试当前站；否则记录掉线故障 (16#8401)、diErrorCount + 1，并自动跳到下一从站防止单站死锁整条总线！"
+      ]
+    },
+    {
+      "id": "A08",
+      "part": "Part A",
+      "name": "FB_DualEStopInterlock",
+      "type": "FB",
+      "title": "双回路急停双通道同步校验、安全门联锁与受控复位标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_DualEStop",
+        "members": [
+          { "name": "bHmiResetCmd", "dataType": "Bool", "comment": "HMI安全复位请求（须配合现场双通道正常）" },
+          { "name": "tDiscrepancyTime", "dataType": "Time", "comment": "双通道不同步最大允许差异时间（默认 T#200ms）" },
+          { "name": "bSafeToRun", "dataType": "Bool", "comment": "状态反馈：安全回路已闭合允许运行" },
+          { "name": "bCh1State", "dataType": "Bool", "comment": "状态反馈：急停通道1状态" },
+          { "name": "bCh2State", "dataType": "Bool", "comment": "状态反馈：急停通道2状态" },
+          { "name": "bDiscrepancyFault", "dataType": "Bool", "comment": "状态反馈：双通道不一致触点粘连故障" },
+          { "name": "bWaitReset", "dataType": "Bool", "comment": "状态反馈：等待人工复位脉冲" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000安全闭合, 16#7001等待复位, 16#8401急停按下, 16#8402安全门打开, 16#8403双通道不同步故障" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopCh1", "dataType": "Bool", "comment": "急停回路通道 1（常闭触点，TRUE=正常）" },
+          { "name": "eStopCh2", "dataType": "Bool", "comment": "急停回路通道 2（常闭触点，TRUE=正常）" },
+          { "name": "safetyGateOk", "dataType": "Bool", "comment": "安全防护门联锁开关（常闭触点，TRUE=门已关好）" },
+          { "name": "feedbackLoopOk", "dataType": "Bool", "comment": "安全继电器/主接触器释放反馈回路（复位前必须为 TRUE）" },
+          { "name": "resetButton", "dataType": "Bool", "comment": "现场安全复位按钮（仅上升沿有效，防卡死）" }
+        ],
+        "output": [
+          { "name": "safetyEnableOut", "dataType": "Bool", "comment": "主安全使能输出（切断或允许全站执行器）" },
+          { "name": "resetRequired", "dataType": "Bool", "comment": "等待复位指示灯输出" },
+          { "name": "discrepancyError", "dataType": "Bool", "comment": "双通道不一致（触点粘连/断线）故障" },
+          { "name": "error", "dataType": "Bool", "comment": "安全未就绪或故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_DualEStop\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statSafetyLatched", "dataType": "Bool", "comment": "安全回路闭合锁存" },
+          { "name": "statDiscrepancyFault", "dataType": "Bool", "comment": "双通道不同步故障锁存" },
+          { "name": "statWaitBothZero", "dataType": "Bool", "comment": "不同步故障后必须两通道同时断开再闭合才可恢复" },
+          { "name": "statResetOld", "dataType": "Bool", "comment": "复位按钮边沿检测" },
+          { "name": "instDiscTimer", "dataType": "TON_TIME", "comment": "双通道不同步计时器" }
+        ],
+        "temp": [
+          { "name": "tempDiscTime", "dataType": "Time" },
+          { "name": "tempChannelsXor", "dataType": "Bool" },
+          { "name": "tempChannelsBothOk", "dataType": "Bool" },
+          { "name": "tempResetEdge", "dataType": "Bool" },
+          { "name": "tempResetCmd", "dataType": "Bool" },
+          { "name": "tempStatus", "dataType": "Word" }
+        ],
+        "constant": [
+          { "name": "STATUS_SAFE_ACTIVE", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_WAIT_RESET", "dataType": "Word", "value": "16#7001" },
+          { "name": "ERR_ESTOP_PRESSED", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_GATE_OPEN", "dataType": "Word", "value": "16#8402" },
+          { "name": "ERR_DISCREPANCY", "dataType": "Word", "value": "16#8403" }
+        ]
+      },
+      "logicSpec": [
+        "1. 任一通道断开 (NOT eStopCh1 OR NOT eStopCh2 OR NOT safetyGateOk) 时，立即无条件切断 statSafetyLatched := FALSE（硬切断）。",
+        "2. 双通道同步监控：当 eStopCh1 XOR eStopCh2 持续超过 tDiscrepancyTime（默认 T#200ms）时，锁存 statDiscrepancyFault := TRUE 与 statWaitBothZero := TRUE。",
+        "3. 不同步故障恢复联锁：必须先让 eStopCh1 与 eStopCh2 同时回到 FALSE（完成机械旋出复原），才解除 statWaitBothZero。",
+        "4. 受控上升沿复位：仅当 eStopCh1 AND eStopCh2 AND safetyGateOk AND feedbackLoopOk AND NOT statDiscrepancyFault，且检测到复位信号上升沿 (tempResetEdge) 时，才置位 statSafetyLatched := TRUE。"
+      ]
+    },
+    {
+      "id": "B01",
+      "part": "Part B",
+      "name": "FB_FIO_SortingByHeight",
+      "type": "FB",
+      "title": "Factory I/O 高低件识别分拣与双推杆顺控状态机 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_SortingByHeight",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE: 手动模式, FALSE: 自动模式" },
+          { "name": "bStartCmd", "dataType": "Bool", "comment": "HMI启动按钮触发" },
+          { "name": "bStopCmd", "dataType": "Bool", "comment": "HMI停止按钮触发" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位触发" },
+          { "name": "bManualEntryConv", "dataType": "Bool", "comment": "手动驱动入口传送带" },
+          { "name": "bManualExitConv", "dataType": "Bool", "comment": "手动驱动出口传送带" },
+          { "name": "bManualPusherHigh", "dataType": "Bool", "comment": "手动伸出高件推杆" },
+          { "name": "bManualPusherLow", "dataType": "Bool", "comment": "手动伸出低件推杆" },
+          { "name": "tTransferTimeout", "dataType": "Time", "comment": "分拣滑道传送超时时间（默认 T#8s）" },
+          { "name": "tPusherHoldTime", "dataType": "Time", "comment": "推杆推出保持时间（默认 T#800ms）" },
+          { "name": "iCurrentStep", "dataType": "Int", "comment": "状态反馈：当前顺控步号" },
+          { "name": "diHighSortedCount", "dataType": "DInt", "comment": "状态反馈：已分拣高件计数" },
+          { "name": "diLowSortedCount", "dataType": "DInt", "comment": "状态反馈：已分拣低件计数" },
+          { "name": "bRunning", "dataType": "Bool", "comment": "状态反馈：系统运行中" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：分拣超时或急停故障" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000运行正常, 16#7000待机, 16#8401分拣传送超时, 16#8402急停触发" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "Factory I/O Emergency Stop（常闭，TRUE=正常）" },
+          { "name": "startBtn", "dataType": "Bool", "comment": "Factory I/O Start 按钮（常开，上升沿启动）" },
+          { "name": "stopBtn", "dataType": "Bool", "comment": "Factory I/O Stop 按钮（常闭，FALSE=请求停止）" },
+          { "name": "resetBtn", "dataType": "Bool", "comment": "Factory I/O Reset 按钮（常开，上升沿复位）" },
+          { "name": "palletSensor", "dataType": "Bool", "comment": "高低探头处托盘到位光电传感器" },
+          { "name": "lowSensor", "dataType": "Bool", "comment": "低位光电传感器（高件和低件均遮挡）" },
+          { "name": "highSensor", "dataType": "Bool", "comment": "高位光电传感器（仅高件遮挡）" },
+          { "name": "loadedSensor", "dataType": "Bool", "comment": "转接段到位光电传感器" },
+          { "name": "atHighExit", "dataType": "Bool", "comment": "高件推杆前光电传感器" },
+          { "name": "atLowExit", "dataType": "Bool", "comment": "低件推杆前光电传感器" }
+        ],
+        "output": [
+          { "name": "conveyorEntry", "dataType": "Bool", "comment": "入口测量段传送带电机" },
+          { "name": "conveyorExit", "dataType": "Bool", "comment": "分拣主传送带电机" },
+          { "name": "loadRoller", "dataType": "Bool", "comment": "中间过渡滚筒电机" },
+          { "name": "pusherHigh", "dataType": "Bool", "comment": "高件分拣推杆执行器" },
+          { "name": "pusherLow", "dataType": "Bool", "comment": "低件分拣推杆执行器" },
+          { "name": "startLight", "dataType": "Bool", "comment": "运行指示灯" },
+          { "name": "faultLight", "dataType": "Bool", "comment": "故障指示灯" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_SortingByHeight\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statStep", "dataType": "Int", "comment": "0:IDLE, 10:FEED_DETECT, 20:TRANSFER_WAIT_EXIT, 30:PUSH_HIGH, 40:PUSH_LOW, 99:FAULT" },
+          { "name": "statRunning", "dataType": "Bool" },
+          { "name": "statStopReq", "dataType": "Bool", "comment": "循环尾停机请求锁存（防卡步）" },
+          { "name": "statPartType", "dataType": "Int", "comment": "1:低件, 2:高件" },
+          { "name": "statStartOld", "dataType": "Bool" },
+          { "name": "statResetOld", "dataType": "Bool" },
+          { "name": "instStepTimer", "dataType": "TON_TIME", "comment": "步序超时监控定时器" },
+          { "name": "instPushTimer", "dataType": "TON_TIME", "comment": "推杆保持时间定时器" }
+        ],
+        "temp": [
+          { "name": "tempStartRise", "dataType": "Bool" },
+          { "name": "tempResetRise", "dataType": "Bool" },
+          { "name": "tempStopActive", "dataType": "Bool" },
+          { "name": "tempConvEntry", "dataType": "Bool" },
+          { "name": "tempConvExit", "dataType": "Bool" },
+          { "name": "tempLoadRoller", "dataType": "Bool" },
+          { "name": "tempPushHigh", "dataType": "Bool" },
+          { "name": "tempPushLow", "dataType": "Bool" },
+          { "name": "tempTimeout", "dataType": "Time" },
+          { "name": "tempHoldTime", "dataType": "Time" }
+        ],
+        "constant": [
+          { "name": "STEP_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STEP_FEED_DETECT", "dataType": "Int", "value": "10" },
+          { "name": "STEP_WAIT_EXIT", "dataType": "Int", "value": "20" },
+          { "name": "STEP_PUSH_HIGH", "dataType": "Int", "value": "30" },
+          { "name": "STEP_PUSH_LOW", "dataType": "Int", "value": "40" },
+          { "name": "STEP_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 急停最高优：NOT eStopOk 时立即转入 STEP_FAULT (99)，并在块尾强制切断全部 5 个执行器输出。",
+        "2. 停止请求不卡步（遵循 siemens-v20-ops §4.6 铁律）：按下停止按钮 (NOT stopBtn OR ioHmi.bStopCmd) 时仅锁存 statStopReq := TRUE，等当前件分拣完成回到 STEP_FEED_DETECT 时优雅停机回 STEP_IDLE。",
+        "3. STEP_FEED_DETECT (10)：启动入口与出口传送带，当 palletSensor 触发时锁存高度分类（highSensor AND lowSensor 为高件=2；仅 lowSensor 为低件=1），转入 STEP_WAIT_EXIT (20)。",
+        "4. STEP_WAIT_EXIT (20)：驱动 loadRoller 与 conveyorExit，等待到达对应推杆传感器（高件等 atHighExit，低件等 atLowExit）；超时报 ERR_TIMEOUT (16#8401)。",
+        "5. STEP_PUSH_HIGH (30) / STEP_PUSH_LOW (40)：触发对应推杆保持 tPusherHoldTime 后缩回，对应计数器 +1，判断 statStopReq 决定回 STEP_IDLE 还是 STEP_FEED_DETECT。"
+      ]
+    },
+    {
+      "id": "B02",
+      "part": "Part B",
+      "name": "FB_FIO_PickAndPlace",
+      "type": "FB",
+      "title": "Factory I/O 气动两轴 X/Z 真空抓手搬运步序控制标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_PickAndPlace",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE: 手动模式, FALSE: 自动模式" },
+          { "name": "bStartCmd", "dataType": "Bool", "comment": "HMI启动触发" },
+          { "name": "bStopCmd", "dataType": "Bool", "comment": "HMI停止触发" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位触发" },
+          { "name": "bManualMoveX", "dataType": "Bool", "comment": "手动驱动X轴伸出" },
+          { "name": "bManualMoveZ", "dataType": "Bool", "comment": "手动驱动Z轴下降" },
+          { "name": "bManualGrab", "dataType": "Bool", "comment": "手动吸盘吸气" },
+          { "name": "tAxisMoveTime", "dataType": "Time", "comment": "单步气缸动作到位稳定延时（默认 T#600ms）" },
+          { "name": "tStepTimeout", "dataType": "Time", "comment": "单步动作超时报警时间（默认 T#4s）" },
+          { "name": "iCurrentStep", "dataType": "Int", "comment": "状态反馈：当前步序" },
+          { "name": "diPickedCount", "dataType": "DInt", "comment": "状态反馈：累计搬运完成件数" },
+          { "name": "bRunning", "dataType": "Bool", "comment": "状态反馈：运行中" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：故障标志" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#7000待机, 16#8401动作或抓取超时, 16#8402急停切断" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（常闭健康为 TRUE）" },
+          { "name": "startBtn", "dataType": "Bool", "comment": "启动按钮（上升沿有效）" },
+          { "name": "stopBtn", "dataType": "Bool", "comment": "停止按钮（常闭健康为 TRUE）" },
+          { "name": "resetBtn", "dataType": "Bool", "comment": "复位按钮" },
+          { "name": "itemAtEntry", "dataType": "Bool", "comment": "入口传送带抓料位到位传感器" },
+          { "name": "itemAtExit", "dataType": "Bool", "comment": "出口传送带放料位空闲/通过传感器" },
+          { "name": "itemDetected", "dataType": "Bool", "comment": "真空吸盘工件吸附检测传感器" },
+          { "name": "movingX", "dataType": "Bool", "comment": "X轴正在移动传感器（FALSE表示已到位静止）" },
+          { "name": "movingZ", "dataType": "Bool", "comment": "Z轴正在移动传感器（FALSE表示已到位静止）" }
+        ],
+        "output": [
+          { "name": "entryConveyor", "dataType": "Bool", "comment": "入口上料传送带" },
+          { "name": "exitConveyor", "dataType": "Bool", "comment": "出口下料传送带" },
+          { "name": "moveX", "dataType": "Bool", "comment": "X轴气缸伸出至放料位（FALSE为缩回抓料位）" },
+          { "name": "moveZ", "dataType": "Bool", "comment": "Z轴气缸下降（FALSE为上升安全位）" },
+          { "name": "grab", "dataType": "Bool", "comment": "真空吸盘吸气电磁阀" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_PickAndPlace\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statStep", "dataType": "Int", "comment": "0:IDLE, 10:FEED_ENTRY, 20:Z_DOWN_PICK, 30:VACUUM_ON, 40:Z_UP_PICK, 50:X_TO_PLACE, 60:Z_DOWN_PLACE, 70:VACUUM_OFF, 80:Z_UP_PLACE, 90:X_HOME, 99:FAULT" },
+          { "name": "statRunning", "dataType": "Bool" },
+          { "name": "statStopReq", "dataType": "Bool" },
+          { "name": "statStartOld", "dataType": "Bool" },
+          { "name": "statResetOld", "dataType": "Bool" },
+          { "name": "instActionTimer", "dataType": "TON_TIME", "comment": "气缸到位稳定延时定时器" },
+          { "name": "instWatchdog", "dataType": "TON_TIME", "comment": "步序超时看门狗定时器" }
+        ],
+        "temp": [
+          { "name": "tempStartRise", "dataType": "Bool" },
+          { "name": "tempResetRise", "dataType": "Bool" },
+          { "name": "tempMoveTime", "dataType": "Time" },
+          { "name": "tempTimeout", "dataType": "Time" },
+          { "name": "tempEntryConv", "dataType": "Bool" },
+          { "name": "tempExitConv", "dataType": "Bool" },
+          { "name": "tempMoveX", "dataType": "Bool" },
+          { "name": "tempMoveZ", "dataType": "Bool" },
+          { "name": "tempGrab", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STEP_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STEP_FEED", "dataType": "Int", "value": "10" },
+          { "name": "STEP_Z_DOWN_PICK", "dataType": "Int", "value": "20" },
+          { "name": "STEP_GRAB", "dataType": "Int", "value": "30" },
+          { "name": "STEP_Z_UP_PICK", "dataType": "Int", "value": "40" },
+          { "name": "STEP_X_FWD", "dataType": "Int", "value": "50" },
+          { "name": "STEP_Z_DOWN_PLACE", "dataType": "Int", "value": "60" },
+          { "name": "STEP_RELEASE", "dataType": "Int", "value": "70" },
+          { "name": "STEP_Z_UP_PLACE", "dataType": "Int", "value": "80" },
+          { "name": "STEP_X_HOME", "dataType": "Int", "value": "90" },
+          { "name": "STEP_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_STEP_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 严格执行两轴防碰撞步序：10送入工件到 itemAtEntry -> 20 Z轴下降 -> 30 开启吸盘并确认 itemDetected -> 40 Z轴上升到位 (NOT movingZ) -> 50 X轴伸出至放料位 (NOT movingX) -> 60 Z轴下降放料 -> 70 关闭吸盘 -> 80 Z轴上升到位 -> 90 X轴缩回原位并计数 +1。",
+        "2. 防碰撞硬规则：只有当 Z 轴处于高位（moveZ = FALSE 且 NOT movingZ）时才允许改变 X 轴状态；在搬运步 40..60 期间若 itemDetected 意外丢失（掉件），立即转入 STEP_FAULT (99)。",
+        "3. 急停触发时切断传送带、吸盘并将气缸复归安全态。"
+      ]
+    },
+    {
+      "id": "B03",
+      "part": "Part B",
+      "name": "FB_FIO_BufferConveyor",
+      "type": "FB",
+      "title": "Factory I/O 三段式缓冲传送带防追尾与满料零压积放控制 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_BufferConveyor",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE手动, FALSE自动" },
+          { "name": "bStartCmd", "dataType": "Bool", "comment": "HMI启动命令" },
+          { "name": "bStopCmd", "dataType": "Bool", "comment": "HMI停止命令" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI复位命令" },
+          { "name": "bManualConv1", "dataType": "Bool", "comment": "手动驱动1号缓冲带" },
+          { "name": "bManualConv2", "dataType": "Bool", "comment": "手动驱动2号缓冲带" },
+          { "name": "bManualConv3", "dataType": "Bool", "comment": "手动驱动3号缓冲带" },
+          { "name": "tJamTimeout", "dataType": "Time", "comment": "光电长遮挡卡料超时阈值（默认 T#6s）" },
+          { "name": "iOccupiedZones", "dataType": "Int", "comment": "状态反馈：当前被占用的缓冲区段数 (0..3)" },
+          { "name": "bBufferFull", "dataType": "Bool", "comment": "状态反馈：三级缓冲全满标志" },
+          { "name": "bJamFault", "dataType": "Bool", "comment": "状态反馈：传送带卡料报警" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#7000停机, 16#8401卡料超时, 16#8402急停触发" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（常闭健康为 TRUE）" },
+          { "name": "startBtn", "dataType": "Bool", "comment": "启动按钮" },
+          { "name": "stopBtn", "dataType": "Bool", "comment": "停止按钮（常闭健康为 TRUE）" },
+          { "name": "resetBtn", "dataType": "Bool", "comment": "复位按钮" },
+          { "name": "sensorZ1", "dataType": "Bool", "comment": "第1段缓冲带末端光电传感器（TRUE=有工件）" },
+          { "name": "sensorZ2", "dataType": "Bool", "comment": "第2段缓冲带末端光电传感器（TRUE=有工件）" },
+          { "name": "sensorZ3", "dataType": "Bool", "comment": "第3段缓冲带末端光电传感器（TRUE=有工件）" },
+          { "name": "downstreamReady", "dataType": "Bool", "comment": "下游工位允许接收信号" }
+        ],
+        "output": [
+          { "name": "conv1", "dataType": "Bool", "comment": "1号缓冲传送带电机" },
+          { "name": "conv2", "dataType": "Bool", "comment": "2号缓冲传送带电机" },
+          { "name": "conv3", "dataType": "Bool", "comment": "3号缓冲传送带电机" },
+          { "name": "stopBlade1", "dataType": "Bool", "comment": "1号阻挡气缸刀片（TRUE=升起阻挡）" },
+          { "name": "stopBlade2", "dataType": "Bool", "comment": "2号阻挡气缸刀片（TRUE=升起阻挡）" },
+          { "name": "upstreamReady", "dataType": "Bool", "comment": "向上游发送允许进料信号" },
+          { "name": "bufferFull", "dataType": "Bool", "comment": "三段缓冲全满指示" },
+          { "name": "error", "dataType": "Bool", "comment": "卡料或急停故障" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_BufferConveyor\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statRunning", "dataType": "Bool" },
+          { "name": "statJamError", "dataType": "Bool" },
+          { "name": "statStartOld", "dataType": "Bool" },
+          { "name": "statResetOld", "dataType": "Bool" },
+          { "name": "instJamTimer1", "dataType": "TON_TIME", "comment": "Z1放行卡料监控定时器" },
+          { "name": "instJamTimer2", "dataType": "TON_TIME", "comment": "Z2放行卡料监控定时器" },
+          { "name": "instJamTimer3", "dataType": "TON_TIME", "comment": "Z3放行卡料监控定时器" }
+        ],
+        "temp": [
+          { "name": "tempStartRise", "dataType": "Bool" },
+          { "name": "tempResetRise", "dataType": "Bool" },
+          { "name": "tempJamTime", "dataType": "Time" },
+          { "name": "tempZ3Hold", "dataType": "Bool" },
+          { "name": "tempZ2Hold", "dataType": "Bool" },
+          { "name": "tempZ1Hold", "dataType": "Bool" },
+          { "name": "tempConv1", "dataType": "Bool" },
+          { "name": "tempConv2", "dataType": "Bool" },
+          { "name": "tempConv3", "dataType": "Bool" },
+          { "name": "tempOccupied", "dataType": "Int" }
+        ],
+        "constant": [
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_JAM", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 零压力积放防追尾逻辑（Zero-Pressure Accumulation）：",
+        "   - Z3 驻留条件 tempZ3Hold := sensorZ3 AND NOT downstreamReady；否则 conv3 运行放行。",
+        "   - Z2 驻留条件 tempZ2Hold := sensorZ2 AND tempZ3Hold（前段驻留时本段到位即停并升起 stopBlade2）；否则 conv2 运行。",
+        "   - Z1 驻留条件 tempZ1Hold := sensorZ1 AND tempZ2Hold（Z2 与 Z3 均驻留时 Z1 到位即停并升起 stopBlade1）；否则 conv1 运行。",
+        "2. 当某段传送带正在运行且其末端光电持续被遮挡超过 tJamTimeout 时，判定为传送卡死报 ERR_JAM (16#8401) 并停机。",
+        "3. upstreamReady := statRunning AND NOT tempZ1Hold AND NOT statJamError AND eStopOk。"
+      ]
+    },
+    {
+      "id": "B04",
+      "part": "Part B",
+      "name": "FB_FIO_Turntable",
+      "type": "FB",
+      "title": "Factory I/O 90度旋转分流转盘双工位对接顺控标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_Turntable",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE手动, FALSE自动" },
+          { "name": "bStartCmd", "dataType": "Bool", "comment": "HMI启动命令" },
+          { "name": "bStopCmd", "dataType": "Bool", "comment": "HMI停止命令" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位" },
+          { "name": "bRouteTo90Deg", "dataType": "Bool", "comment": "分流路由选择：TRUE=旋转90度侧向出料, FALSE=0度直通出料" },
+          { "name": "bManualTurn", "dataType": "Bool", "comment": "手动驱动转盘旋转至90度" },
+          { "name": "bManualRollPlus", "dataType": "Bool", "comment": "手动驱动转盘滚筒正转" },
+          { "name": "tActionTimeout", "dataType": "Time", "comment": "转盘旋转/进出料超时时间（默认 T#5s）" },
+          { "name": "iCurrentStep", "dataType": "Int", "comment": "状态反馈：当前步序" },
+          { "name": "diRoutedCount", "dataType": "DInt", "comment": "状态反馈：累计通过托盘数" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：故障标志" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#7000待机, 16#8401转盘动作超时, 16#8402急停触发" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（常闭健康为 TRUE）" },
+          { "name": "startBtn", "dataType": "Bool", "comment": "启动按钮" },
+          { "name": "stopBtn", "dataType": "Bool", "comment": "停止按钮（常闭健康为 TRUE）" },
+          { "name": "resetBtn", "dataType": "Bool", "comment": "复位按钮" },
+          { "name": "routeSelect90", "dataType": "Bool", "comment": "外部路由请求：TRUE分流至90度支线，FALSE直通" },
+          { "name": "atEntry", "dataType": "Bool", "comment": "入口传送带末端待进盘光电" },
+          { "name": "limit0", "dataType": "Bool", "comment": "转盘 0 度原位限位开关" },
+          { "name": "limit90", "dataType": "Bool", "comment": "转盘 90 度旋转到位限位开关" },
+          { "name": "frontLimit", "dataType": "Bool", "comment": "转盘内托盘前端到位光电" },
+          { "name": "backLimit", "dataType": "Bool", "comment": "转盘内托盘后端到位光电" },
+          { "name": "atExit0", "dataType": "Bool", "comment": "0度直通出口离开光电" },
+          { "name": "atExit90", "dataType": "Bool", "comment": "90度分流出口离开光电" }
+        ],
+        "output": [
+          { "name": "entryConveyor", "dataType": "Bool", "comment": "入口传送带电机" },
+          { "name": "exitConveyor0", "dataType": "Bool", "comment": "0度直通出口传送带电机" },
+          { "name": "exitConveyor90", "dataType": "Bool", "comment": "90度分流出口传送带电机" },
+          { "name": "turnTable", "dataType": "Bool", "comment": "转盘90度旋转驱动（FALSE回0度，TRUE转90度）" },
+          { "name": "rollPlus", "dataType": "Bool", "comment": "转盘台面滚筒正向驱动" },
+          { "name": "rollMinus", "dataType": "Bool", "comment": "转盘台面滚筒反向驱动" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_Turntable\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statStep", "dataType": "Int", "comment": "0:IDLE, 10:HOME_0, 20:WAIT_ENTRY, 30:LOAD_ROLL, 40:ROTATE_90, 50:UNLOAD_0, 60:UNLOAD_90, 70:RETURN_0, 99:FAULT" },
+          { "name": "statRunning", "dataType": "Bool" },
+          { "name": "statStopReq", "dataType": "Bool" },
+          { "name": "statStartOld", "dataType": "Bool" },
+          { "name": "statResetOld", "dataType": "Bool" },
+          { "name": "instStepWatchdog", "dataType": "TON_TIME", "comment": "动作超时看门狗定时器" }
+        ],
+        "temp": [
+          { "name": "tempStartRise", "dataType": "Bool" },
+          { "name": "tempResetRise", "dataType": "Bool" },
+          { "name": "tempRoute90", "dataType": "Bool" },
+          { "name": "tempTimeout", "dataType": "Time" },
+          { "name": "tempEntryConv", "dataType": "Bool" },
+          { "name": "tempExit0", "dataType": "Bool" },
+          { "name": "tempExit90", "dataType": "Bool" },
+          { "name": "tempTurn", "dataType": "Bool" },
+          { "name": "tempRollP", "dataType": "Bool" },
+          { "name": "tempRollM", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STEP_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STEP_HOME_0", "dataType": "Int", "value": "10" },
+          { "name": "STEP_WAIT_ENTRY", "dataType": "Int", "value": "20" },
+          { "name": "STEP_LOAD_ROLL", "dataType": "Int", "value": "30" },
+          { "name": "STEP_ROTATE_90", "dataType": "Int", "value": "40" },
+          { "name": "STEP_UNLOAD_0", "dataType": "Int", "value": "50" },
+          { "name": "STEP_UNLOAD_90", "dataType": "Int", "value": "60" },
+          { "name": "STEP_RETURN_0", "dataType": "Int", "value": "70" },
+          { "name": "STEP_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 机械防撞联锁：转盘正在旋转（NOT limit0 AND NOT limit90）时严禁开启 rollPlus/rollMinus 台面滚筒；托盘正在进出转盘时严禁切换 turnTable 旋转状态。",
+        "2. 步序：10确认 limit0 原位 -> 20等待 atEntry -> 30同时开启 entryConveyor 与 rollPlus 将托盘送入转盘直到 frontLimit 触发 -> 根据路由选择转入 50(直通出料至 atExit0) 或 40(旋转至 limit90) -> 60(开启 rollPlus 与 exitConveyor90 出料至 atExit90) -> 70(回转至 limit0)。",
+        "3. 任一动作步超过 tActionTimeout（默认 T#5s）立即转入 STEP_FAULT (99) 并报 16#8401。"
+      ]
+    },
+    {
+      "id": "B05",
+      "part": "Part B",
+      "name": "FB_FIO_AutomatedWarehouse",
+      "type": "FB",
+      "title": "Factory I/O 立体仓库堆垛机（Stacker Crane）取放料状态机标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_Warehouse",
+        "members": [
+          { "name": "bExecuteCmd", "dataType": "Bool", "comment": "HMI触发单次存取库作业（上升沿有效）" },
+          { "name": "bModeRetrieve", "dataType": "Bool", "comment": "作业模式：FALSE=入库(Store), TRUE=出库(Retrieve)" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位命令" },
+          { "name": "iTargetCell", "dataType": "Int", "comment": "HMI设定目标库位号 (1..54)" },
+          { "name": "tAxisSettleTime", "dataType": "Time", "comment": "升降/伸缩到位稳定延时（默认 T#800ms）" },
+          { "name": "tMoveTimeout", "dataType": "Time", "comment": "堆垛机寻址移动超时阈值（默认 T#10s）" },
+          { "name": "iCurrentStep", "dataType": "Int", "comment": "状态反馈：当前状态机步号" },
+          { "name": "iActiveTargetPos", "dataType": "Int", "comment": "状态反馈：当前输出给堆垛机的目标位置" },
+          { "name": "diStoredCount", "dataType": "DInt", "comment": "状态反馈：累计入库完成数" },
+          { "name": "diRetrievedCount", "dataType": "DInt", "comment": "状态反馈：累计出库完成数" },
+          { "name": "bBusy", "dataType": "Bool", "comment": "状态反馈：堆垛机作业忙" },
+          { "name": "bDone", "dataType": "Bool", "comment": "状态反馈：作业完成" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：故障标志" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000完成, 16#7000空闲, 16#7002执行中, 16#8200库位号越界, 16#8401动作超时, 16#8402急停触发" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（常闭健康为 TRUE）" },
+          { "name": "execute", "dataType": "Bool", "comment": "触发单次入库/出库作业（上升沿）" },
+          { "name": "modeRetrieve", "dataType": "Bool", "comment": "FALSE: 入库(从I/O台到库位), TRUE: 出库(从库位到I/O台)" },
+          { "name": "targetCell", "dataType": "Int", "comment": "目标库位编号 (1..54)" },
+          { "name": "atEntry", "dataType": "Bool", "comment": "入库上料台托盘到位光电" },
+          { "name": "atExit", "dataType": "Bool", "comment": "出库下料台空闲光电（FALSE表示空闲可放料）" },
+          { "name": "movingX", "dataType": "Bool", "comment": "堆垛机X轴移动中反馈" },
+          { "name": "movingZ", "dataType": "Bool", "comment": "堆垛机Z轴移动中反馈" },
+          { "name": "atLeft", "dataType": "Bool", "comment": "货叉左伸（上料侧）到位限位" },
+          { "name": "atMiddle", "dataType": "Bool", "comment": "货叉中位（安全居中）限位" },
+          { "name": "atRight", "dataType": "Bool", "comment": "货叉右伸（货架侧/下料侧）到位限位" },
+          { "name": "reset", "dataType": "Bool", "comment": "故障复位" }
+        ],
+        "output": [
+          { "name": "targetPosition", "dataType": "Int", "comment": "堆垛机目标位置给定（0=上/下料位, 1..54=货架库位, 55=归位）" },
+          { "name": "forksLeft", "dataType": "Bool", "comment": "货叉向左伸出（取上料台托盘）" },
+          { "name": "forksRight", "dataType": "Bool", "comment": "货叉向右伸出（存/取货架或放料台）" },
+          { "name": "lift", "dataType": "Bool", "comment": "货叉微升（TRUE=抬起托盘，FALSE=落下托盘）" },
+          { "name": "done", "dataType": "Bool", "comment": "单次存取作业完成" },
+          { "name": "busy", "dataType": "Bool", "comment": "作业执行中" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "PLCopen 状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_Warehouse\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statStep", "dataType": "Int", "comment": "0:IDLE, 10:MOVE_SRC, 20:FORK_EXT_PICK, 30:LIFT_UP, 40:FORK_RET_PICK, 50:MOVE_DST, 60:FORK_EXT_PLACE, 70:LIFT_DOWN, 80:FORK_RET_PLACE, 90:DONE, 99:FAULT" },
+          { "name": "statCell", "dataType": "Int" },
+          { "name": "statIsRetrieve", "dataType": "Bool" },
+          { "name": "statExecOld", "dataType": "Bool" },
+          { "name": "statStatus", "dataType": "Word" },
+          { "name": "instSettleTimer", "dataType": "TON_TIME", "comment": "微升/寻址稳定定时器" },
+          { "name": "instMoveWatchdog", "dataType": "TON_TIME", "comment": "寻址与货叉超时定时器" }
+        ],
+        "temp": [
+          { "name": "tempExecReq", "dataType": "Bool" },
+          { "name": "tempExecRise", "dataType": "Bool" },
+          { "name": "tempCell", "dataType": "Int" },
+          { "name": "tempRetrieve", "dataType": "Bool" },
+          { "name": "tempAxisStill", "dataType": "Bool" },
+          { "name": "tempTargetPos", "dataType": "Int" },
+          { "name": "tempForkL", "dataType": "Bool" },
+          { "name": "tempForkR", "dataType": "Bool" },
+          { "name": "tempLift", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "POS_IO_STATION", "dataType": "Int", "value": "55" },
+          { "name": "MIN_CELL", "dataType": "Int", "value": "1" },
+          { "name": "MAX_CELL", "dataType": "Int", "value": "54" },
+          { "name": "STEP_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STEP_MOVE_SRC", "dataType": "Int", "value": "10" },
+          { "name": "STEP_FORK_EXT_PICK", "dataType": "Int", "value": "20" },
+          { "name": "STEP_LIFT_UP", "dataType": "Int", "value": "30" },
+          { "name": "STEP_FORK_RET_PICK", "dataType": "Int", "value": "40" },
+          { "name": "STEP_MOVE_DST", "dataType": "Int", "value": "50" },
+          { "name": "STEP_FORK_EXT_PLACE", "dataType": "Int", "value": "60" },
+          { "name": "STEP_LIFT_DOWN", "dataType": "Int", "value": "70" },
+          { "name": "STEP_FORK_RET_PLACE", "dataType": "Int", "value": "80" },
+          { "name": "STEP_DONE", "dataType": "Int", "value": "90" },
+          { "name": "STEP_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_FINISHED", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_NO_CALL", "dataType": "Word", "value": "16#7000" },
+          { "name": "STATUS_BUSY", "dataType": "Word", "value": "16#7002" },
+          { "name": "ERR_CELL_RANGE", "dataType": "Word", "value": "16#8200" },
+          { "name": "ERR_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 参数合法性前置校验 (SE001)：上升沿触发时检查 targetCell 是否在 1..54 之间，越界直接报 ERR_CELL_RANGE (16#8200)。",
+        "2. 堆垛机防撞核心铁律：只有当货叉完全居中 (atMiddle = TRUE 且 forksLeft = FALSE 且 forksRight = FALSE) 时才允许改变 targetPosition！",
+        "3. 入库模式 (statIsRetrieve = FALSE)：10移至上料位(55)且 lift:=FALSE -> 20伸左叉(forksLeft)至 atLeft -> 30微升(lift:=TRUE)稳定 -> 40缩叉回中位(atMiddle) -> 50移至目标库位(statCell) -> 60伸右叉(forksRight)至 atRight -> 70微降(lift:=FALSE)放下托盘 -> 80缩叉回中位(atMiddle) -> 90完成。",
+        "4. 出库模式 (statIsRetrieve = TRUE)：10移至目标库位(statCell)且 lift:=FALSE -> 20伸右叉至 atRight -> 30微升(lift:=TRUE)托起 -> 40缩叉回中位 -> 50移至下料位(55) -> 60伸右叉至 atRight -> 70微降放下 -> 80缩叉回中位 -> 90完成。"
+      ]
+    },
+    {
+      "id": "B06",
+      "part": "Part B",
+      "name": "FB_FIO_TankLevelPID",
+      "type": "FB",
+      "title": "Factory I/O 水箱液位进出水比例调节阀抗积分饱和 PID 闭环控制块 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_TankLevelPID",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE: 手动开度给定模式, FALSE: 自动PID闭环模式" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI复位积分项与报警" },
+          { "name": "rSetpoint", "dataType": "Real", "comment": "液位设定值 SP (0.0..300.0 cm，默认 150.0)" },
+          { "name": "rKp", "dataType": "Real", "comment": "比例增益 Kp (默认 2.0)" },
+          { "name": "rKi", "dataType": "Real", "comment": "积分增益 Ki (1/s，默认 0.2)" },
+          { "name": "rKd", "dataType": "Real", "comment": "微分增益 Kd (s，默认 0.05)" },
+          { "name": "rDeadband", "dataType": "Real", "comment": "稳态误差死区 (cm，默认 0.5)" },
+          { "name": "rManualFillValve", "dataType": "Real", "comment": "手动进水阀开度给定 (0.0..10.0V)" },
+          { "name": "rManualDischargeValve", "dataType": "Real", "comment": "手动排水阀开度给定 (0.0..10.0V)" },
+          { "name": "rCurrentLevel", "dataType": "Real", "comment": "状态反馈：当前实际液位 PV (0.0..300.0 cm)" },
+          { "name": "rControlError", "dataType": "Real", "comment": "状态反馈：当前偏差 e = SP - PV" },
+          { "name": "rFillValveOut", "dataType": "Real", "comment": "状态反馈：进水比例阀输出电压 (0.0..10.0V)" },
+          { "name": "rDischargeValveOut", "dataType": "Real", "comment": "状态反馈：排水比例阀输出电压 (0.0..10.0V)" },
+          { "name": "bHighLevelAlarm", "dataType": "Bool", "comment": "状态反馈：高液位溢流联锁报警" },
+          { "name": "bLowLevelAlarm", "dataType": "Bool", "comment": "状态反馈：低液位干烧报警" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#7000停机, 16#8200采样周期非法, 16#8401高液位溢流保护, 16#8402急停切断" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（FALSE时立即关闭进水阀）" },
+          { "name": "enable", "dataType": "Bool", "comment": "控制器运行使能" },
+          { "name": "levelMeterV", "dataType": "Real", "comment": "Factory I/O 液位计电压输入 (0.0..10.0V 对应 0..300cm)" },
+          { "name": "flowMeterV", "dataType": "Real", "comment": "出水流量计电压输入 (0.0..10.0V)" },
+          { "name": "setpointCm", "dataType": "Real", "comment": "外部液位设定值 (0.0..300.0 cm)" },
+          { "name": "dtSec", "dataType": "Real", "comment": "控制周期时间（秒，如 0.1s）" },
+          { "name": "reset", "dataType": "Bool", "comment": "复位积分累计与报警" }
+        ],
+        "output": [
+          { "name": "fillValveV", "dataType": "Real", "comment": "进水比例阀模拟量电压输出 (0.0..10.0V)" },
+          { "name": "dischargeValveV", "dataType": "Real", "comment": "出水比例阀模拟量电压输出 (0.0..10.0V)" },
+          { "name": "levelCm", "dataType": "Real", "comment": "换算后的当前液位高度 (cm)" },
+          { "name": "highLevelAlarm", "dataType": "Bool", "comment": "高液位超限报警 (>= 285.0cm)" },
+          { "name": "lowLevelAlarm", "dataType": "Bool", "comment": "低液位报警 (<= 10.0cm)" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_TankLevelPID\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statIntegral", "dataType": "Real", "comment": "PID积分累加项 (-10.0..10.0)" },
+          { "name": "statPrevError", "dataType": "Real", "comment": "上一周期误差值" },
+          { "name": "statManualOld", "dataType": "Bool", "comment": "用于手切自无扰切换检测" }
+        ],
+        "temp": [
+          { "name": "tempLevelCm", "dataType": "Real" },
+          { "name": "tempSpCm", "dataType": "Real" },
+          { "name": "tempErr", "dataType": "Real" },
+          { "name": "tempKp", "dataType": "Real" },
+          { "name": "tempKi", "dataType": "Real" },
+          { "name": "tempKd", "dataType": "Real" },
+          { "name": "tempDeriv", "dataType": "Real" },
+          { "name": "tempPidOut", "dataType": "Real" },
+          { "name": "tempFillV", "dataType": "Real" },
+          { "name": "tempDischV", "dataType": "Real" },
+          { "name": "tempHighAlm", "dataType": "Bool" },
+          { "name": "tempLowAlm", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "MAX_LEVEL_CM", "dataType": "Real", "value": "300.0" },
+          { "name": "HIGH_ALARM_CM", "dataType": "Real", "value": "285.0" },
+          { "name": "LOW_ALARM_CM", "dataType": "Real", "value": "10.0" },
+          { "name": "MAX_VALVE_V", "dataType": "Real", "value": "10.0" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_DT_INVALID", "dataType": "Word", "value": "16#8200" },
+          { "name": "ERR_OVERFLOW_PROT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. 换算液位：tempLevelCm := LIMIT(MN := 0.0, IN := levelMeterV * 30.0, MX := 300.0)。",
+        "2. 急停或未使能时：fillValveV := 0.0, dischargeValveV := 0.0，statIntegral := 0.0。",
+        "3. 参数校验：dtSec <= 0.0 时报 ERR_DT_INVALID (16#8200) 并安全关闭阀门。",
+        "4. 手动切自动无扰切换（Bumpless Transfer）：当 ioHmi.bManualMode 从 TRUE 变为 FALSE 时，将 statIntegral 初始化为当前手动阀门开度差 (rManualFillValve - rManualDischargeValve)。",
+        "5. 双极性分程控制（Split-Range PID）与抗积分饱和：PID 输出在 [-10.0, +10.0] 限幅，>0 时驱动进水阀 fillValveV (0..10V) 且排水阀为 0V；<0 时驱动排水阀 dischargeValveV (0..10V) 且进水阀为 0V。高液位 (>=285cm) 硬联锁强制关死进水阀 (fillValveV := 0.0) 防溢流！"
+      ]
+    },
+    {
+      "id": "B07",
+      "part": "Part B",
+      "name": "FB_FIO_Assembler",
+      "type": "FB",
+      "title": "Factory I/O 双工位底座（Base）与盖板（Lid）抓取装配顺控标准块 FB",
+      "udt": {
+        "name": "UDT_HMI_FIO_Assembler",
+        "members": [
+          { "name": "bManualMode", "dataType": "Bool", "comment": "TRUE手动, FALSE自动" },
+          { "name": "bStartCmd", "dataType": "Bool", "comment": "HMI启动命令" },
+          { "name": "bStopCmd", "dataType": "Bool", "comment": "HMI停止命令" },
+          { "name": "bResetCmd", "dataType": "Bool", "comment": "HMI故障复位命令" },
+          { "name": "tActionDelay", "dataType": "Time", "comment": "气缸定位/夹紧保持延时（默认 T#500ms）" },
+          { "name": "tStepTimeout", "dataType": "Time", "comment": "单步动作超时时间（默认 T#6s）" },
+          { "name": "iCurrentStep", "dataType": "Int", "comment": "状态反馈：当前装配顺控步号" },
+          { "name": "diAssembledCount", "dataType": "DInt", "comment": "状态反馈：累计完成装配成品数" },
+          { "name": "bRunning", "dataType": "Bool", "comment": "状态反馈：运行中" },
+          { "name": "bFault", "dataType": "Bool", "comment": "状态反馈：超时或急停故障" },
+          { "name": "wStatus", "dataType": "Word", "comment": "状态码：16#0000正常, 16#7000待机, 16#8401工位超时, 16#8402急停触发" }
+        ]
+      },
+      "interfaces": {
+        "input": [
+          { "name": "eStopOk", "dataType": "Bool", "comment": "急停正常（常闭健康为 TRUE）" },
+          { "name": "startBtn", "dataType": "Bool", "comment": "启动按钮" },
+          { "name": "stopBtn", "dataType": "Bool", "comment": "停止按钮（常闭健康为 TRUE）" },
+          { "name": "resetBtn", "dataType": "Bool", "comment": "复位按钮" },
+          { "name": "lidAtPlace", "dataType": "Bool", "comment": "盖板工位到位光电传感器" },
+          { "name": "baseAtPlace", "dataType": "Bool", "comment": "底座工位到位光电传感器" },
+          { "name": "partLeaving", "dataType": "Bool", "comment": "装配成品离开工位光电传感器" },
+          { "name": "lidClamped", "dataType": "Bool", "comment": "盖板定位夹紧到位反馈" },
+          { "name": "baseClamped", "dataType": "Bool", "comment": "底座定位夹紧到位反馈" },
+          { "name": "posAtLimit", "dataType": "Bool", "comment": "底座挡料升降气缸到位反馈" },
+          { "name": "movingX", "dataType": "Bool", "comment": "机械手X轴移动中反馈" },
+          { "name": "movingZ", "dataType": "Bool", "comment": "机械手Z轴移动中反馈" },
+          { "name": "itemDetected", "dataType": "Bool", "comment": "吸盘抓取到盖板检测反馈" }
+        ],
+        "output": [
+          { "name": "convLids", "dataType": "Bool", "comment": "盖板传送带电机" },
+          { "name": "convBases", "dataType": "Bool", "comment": "底座传送带电机" },
+          { "name": "clampLid", "dataType": "Bool", "comment": "盖板定位夹紧气缸" },
+          { "name": "clampBase", "dataType": "Bool", "comment": "底座定位夹紧气缸" },
+          { "name": "posRaise", "dataType": "Bool", "comment": "底座放行挡板抬起气缸" },
+          { "name": "moveX", "dataType": "Bool", "comment": "机械手X轴移向底座装配工位" },
+          { "name": "moveZ", "dataType": "Bool", "comment": "机械手Z轴下降" },
+          { "name": "grab", "dataType": "Bool", "comment": "机械手真空吸盘" },
+          { "name": "error", "dataType": "Bool", "comment": "故障标志" },
+          { "name": "status", "dataType": "Word", "comment": "状态码" }
+        ],
+        "inOut": [
+          { "name": "ioHmi", "dataType": "\"UDT_HMI_FIO_Assembler\"", "comment": "HMI交互与参数状态结构体" }
+        ],
+        "static": [
+          { "name": "statStep", "dataType": "Int", "comment": "0:IDLE, 10:FEED_BOTH, 20:CLAMP_BOTH, 30:Z_DOWN_LID, 40:GRAB_LID, 50:Z_UP_LID, 60:X_TO_BASE, 70:Z_DOWN_ASSY, 80:RELEASE_ASSY, 90:Z_UP_HOME_EJECT, 99:FAULT" },
+          { "name": "statRunning", "dataType": "Bool" },
+          { "name": "statStopReq", "dataType": "Bool" },
+          { "name": "statStartOld", "dataType": "Bool" },
+          { "name": "statResetOld", "dataType": "Bool" },
+          { "name": "instDelayTimer", "dataType": "TON_TIME", "comment": "动作保持延时定时器" },
+          { "name": "instWatchdog", "dataType": "TON_TIME", "comment": "工位超时看门狗定时器" }
+        ],
+        "temp": [
+          { "name": "tempStartRise", "dataType": "Bool" },
+          { "name": "tempResetRise", "dataType": "Bool" },
+          { "name": "tempDelay", "dataType": "Time" },
+          { "name": "tempTimeout", "dataType": "Time" },
+          { "name": "tempConvLids", "dataType": "Bool" },
+          { "name": "tempConvBases", "dataType": "Bool" },
+          { "name": "tempClampLid", "dataType": "Bool" },
+          { "name": "tempClampBase", "dataType": "Bool" },
+          { "name": "tempPosRaise", "dataType": "Bool" },
+          { "name": "tempMoveX", "dataType": "Bool" },
+          { "name": "tempMoveZ", "dataType": "Bool" },
+          { "name": "tempGrab", "dataType": "Bool" }
+        ],
+        "constant": [
+          { "name": "STEP_IDLE", "dataType": "Int", "value": "0" },
+          { "name": "STEP_FEED_BOTH", "dataType": "Int", "value": "10" },
+          { "name": "STEP_CLAMP_BOTH", "dataType": "Int", "value": "20" },
+          { "name": "STEP_Z_DOWN_LID", "dataType": "Int", "value": "30" },
+          { "name": "STEP_GRAB_LID", "dataType": "Int", "value": "40" },
+          { "name": "STEP_Z_UP_LID", "dataType": "Int", "value": "50" },
+          { "name": "STEP_X_TO_BASE", "dataType": "Int", "value": "60" },
+          { "name": "STEP_Z_DOWN_ASSY", "dataType": "Int", "value": "70" },
+          { "name": "STEP_RELEASE_ASSY", "dataType": "Int", "value": "80" },
+          { "name": "STEP_EJECT", "dataType": "Int", "value": "90" },
+          { "name": "STEP_FAULT", "dataType": "Int", "value": "99" },
+          { "name": "STATUS_OK", "dataType": "Word", "value": "16#0000" },
+          { "name": "STATUS_IDLE", "dataType": "Word", "value": "16#7000" },
+          { "name": "ERR_TIMEOUT", "dataType": "Word", "value": "16#8401" },
+          { "name": "ERR_ESTOP", "dataType": "Word", "value": "16#8402" }
+        ]
+      },
+      "logicSpec": [
+        "1. STEP_FEED_BOTH (10)：分别驱动 convLids（直到 lidAtPlace）与 convBases（直到 baseAtPlace），两者均到位后转入 STEP_CLAMP_BOTH (20)。",
+        "2. STEP_CLAMP_BOTH (20)：驱动 clampLid 与 clampBase 夹紧定位，确认 lidClamped AND baseClamped 后转入 STEP_Z_DOWN_LID (30)。",
+        "3. STEP_Z_DOWN_LID (30) -> STEP_GRAB_LID (40)：Z轴下降吸取盖板，确认 itemDetected 后松开 clampLid 并转入 STEP_Z_UP_LID (50)。",
+        "4. STEP_Z_UP_LID (50) -> STEP_X_TO_BASE (60) -> STEP_Z_DOWN_ASSY (70) -> STEP_RELEASE_ASSY (80)：Z轴上升到位后 X 轴移至底座上方，Z轴下降将盖板压装到底座上并释放真空。",
+        "5. STEP_EJECT (90)：Z轴上升并X轴回原位，同时松开 clampBase、抬起挡料板 posRaise 并开启 convBases 将成品送出，检测到 partLeaving 后计数 +1，进入下一循环或响应 statStopReq 停机。"
+      ]
+    }
+  ]
+}

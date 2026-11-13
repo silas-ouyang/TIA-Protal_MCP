@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <DocumentInfo>
+    <Created>2000-01-01T00:00:00.0000000Z</Created>
+    <ExportSetting>None</ExportSetting>
+    <InstalledProducts />
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="bManualMode" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">TRUE手动, FALSE自动</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bStartCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI启动命令</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bStopCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI停止命令</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bResetCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI复位命令</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualConv1" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">手动驱动1号缓冲带</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualConv2" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">手动驱动2号缓冲带</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualConv3" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">手动驱动3号缓冲带</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tJamTimeout" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">光电长遮挡卡料超时阈值（默认 T#6s）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="iOccupiedZones" Datatype="Int">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：当前被占用的缓冲区段数 (0..3)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bBufferFull" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：三级缓冲全满标志</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bJamFault" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：传送带卡料报警</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="wStatus" Datatype="Word">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态码：16#0000正常, 16#7000停机, 16#8401卡料超时, 16#8402急停触发</MultiLanguageText>
+              </Comment>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_HMI_FIO_BufferConveyor</Name>
+      <Namespace />
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

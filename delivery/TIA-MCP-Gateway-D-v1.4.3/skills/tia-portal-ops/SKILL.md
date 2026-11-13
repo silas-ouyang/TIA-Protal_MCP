@@ -10,33 +10,41 @@ description: 本机三套 TIA Portal MCP（A=v1.4.1 47工具LAD优先 / B=v2.7.8
 
 ## 0. 现在只有一个入口：网关 D
 
-三个宿主（opencode / DSH / WorkBuddy）都只挂了 **D**（`D:\TIA_MCP\gateway-d\gateway.js`），
+已接入宿主默认挂载统一网关 **D**（`1+5` 零第三方依赖架构：`<交付包>/gateway/gateway.js` + `gateway/lib/{utils,upstreams,lock,connect,blocks}.js`），
 D 内部再路由到 A/B/C。所以实际调用的是 `d_*` 这 15 个工具，不是 §7 表里的原始工具名。
 
-```
-d_status     看谁起来了、谁在独占
-d_doctor     体检：锁 / A / 版本 / Openness 组 / B / C
-d_connect    按版本自动路由并连接（最常用）
-d_tree       工程结构
-d_read_block 读块（B 给梯形图骨架）
-d_write_block 写块（自动处理 BOM，默认只出计划）
-d_compile / d_save / d_offline / d_finish
-d_download   下载（缺参数直接报错，不猜）
-d_call       任意上游任意工具的透传 —— 兜底，ABC 有的都能用
-d_list_tools 查某上游有哪些工具
-d_use        强制切上游
-d_versions   看装了哪些 TIA
+```text
+d_status      看上游启动态、独占锁、external 接管标记与 pendingRecovery 告警
+d_doctor      体检：锁 / pending_recovery / 端口 8000 / 零进程 TIA 探测 / Openness 组 / B·C（deep:true 才实起 A）
+d_versions    零进程探测本机已装 TIA 版本与路由建议（refresh 跳过 60s 缓存）
+d_connect     按版本/.apXX 自动路由并连接（OpenProject 前 B 基础设施失败保锁回落 A；fallback:false 可禁）
+d_use         强制切上游（自动断开上一个受管会话，不杀外部接管会话）
+d_tree        工程结构
+d_read_block  读块（B 默认 DescribeBlockLogic；s7dcl 自动查子组；xml 不传 group 仅查根目录；V20 SCL 失败可传 fallback_to_xml:true 回退 xml）
+d_write_block 写块（自动处理 BOM，默认只出计划；B .scl confirm:true 走 XML 备份+CompileAndDiagnosePlc+回滚 Saga）
+d_compile     编译并返回诊断（B 走 CompileAndDiagnosePlc）
+d_save        保存（遇 pending_recovery.json 默认阻断；支持 allow_dirty_save / clear_pending_recovery）
+d_offline     转离线
+d_download    下载（缺参数直接报错，不猜；A 上 V15–V20 填 PLC IP、V21 填接口名；B 上固定映射 targetIpAddress，V20/V21 一律填 PLC IP）
+d_finish      收尾三连（转离线→编译 0 错→保存；遇 pending_recovery.json 默认阻断，支持 allow_dirty_save）
+d_call        任意上游任意工具透传（支持 timeoutMs 与 retries 退避）
+d_list_tools  查某上游可见工具（B 带 filter 时同步查全量 238 工具）
 ```
 
 要点：
 
-- **写块先出计划**：`d_write_block` 不带 `confirm:true` 只返回 plan，确认后再重放。
-- **编码不用你操心**：含中文的 `.scl` 自动加 BOM，`.s7dcl`/`.xml` 一律加 BOM。
-- **B 的 L2 工具**：可见列表只有 65 个，但 `d_call` 会自动走 B 的 `CallTool` 转发，
-  不会因为"列表里没有"就失败。
-- **跨宿主互斥**：第二个宿主**无论调哪个上游都会被锁挡住**（v1.2 起不再区分上游——两个进程同时连 TIA 一定抢会话）。提示"另一个网关实例正在占用 TIA"。
-  这是有意的，别绕，先结束那边会话。
-- **审计**：每次调用写 `D:\TIA_MCP\gateway-d\runtime\d.log`，排查问题先看它。
+- **体检零拉起 & 端口 8000 守卫**：`d_doctor` 与 `d_versions` 默认不拉起 A/B（需实起 A 才传 `deep:true`，查外部 MCP `serverInfo` 传 `with_server_info:true`）。端口 8000 被外部进程占用时默认 **fail-closed 拒绝静默接管**；仅当 `d.config.json` 中 `upstreams.a.adoptExternal:true`（或 `reclaimOrphan:true`）时接管并标 `external:true`（断开/退出绝不 `killTree` 外部服务）。
+- **连接锁与安全回退**：第二个宿主**无论调哪个上游都会被 `active.lock` 挡住**，提示“另一个网关实例正在占用 TIA”，失锁时立即通过 `onLockLost` 停掉托管子进程。`d_connect` 仅在 `OpenProject` 之前遇到 B 基础设施故障时保锁自动回退 A；一旦进入 `OpenProject` 后严禁强杀切回。
+- **读块与 V20 SCL / 子组边界**：`d_read_block(format:'s7dcl')` 在 B 上未传 `group` 时自动检索 `GetBlocksWithHierarchy` 补齐子组；若为 SCL 块导致 V20 `ExportAsDocuments` 抛 `EngineeringNotSupportedException`，默认 fail-closed 报错引导改用 `format:'xml'` 或显式传 `fallback_to_xml:true`（返回体将标 `actual_format:'xml', fallback_used:true`）。注意 B 原生 `ExportBlock(xml)`（`GetBlock`）与 `ExportAsDocuments` 相同，不传 `group` 时只查根目录不递归子组，子组块直接传 `format:'xml'` 时应显式传 `group`。
+- **下载 `target_interface` 上游差异**：`d_download` 在 **A** 上透传 `target_interface`（`V15–V20` 填 PLC IP，`V21` 填目标接口名如 `PN/IE_1` / `1 X1`）；在 **B** 上固定映射为 `DownloadToPlc(targetIpAddress)`，因此 **V20 与 V21 一律填 PLC IP**（传接口名会报找不到匹配 IP 路由）。
+- **PLCSIM Advanced V7.0 仿真独立于网关 D**：`d_*` 不含虚拟 PLC 启停工具；若在源码仓配合 `plcsim-adv-bridge` 使用（CLI / `--mcp` 13 工具，kebab-case 字符串参数），需有 `--mcp` 或 PLCSIM GUI 常驻持有 `SimulationRuntimeManager`，否则短生命周期 CLI 退出后实例丢失且 `networkMode` 退回 `Softbus`。S7 102（`Sharp7`）读 DB 需 `TCPIPSingleAdapter` + 非优化 DB + `Put/Get`；注意规避宿主机 `192.168.0.0/24` 网卡冲突、APIPA 网卡改静态网段需管理员 UAC 提权，以及 V20 CPU FW V4.0 的默认安全向导（机密组态保护 / 安全通信 / UMAC 访问控制）。
+- **写块先出计划 + 事务回滚 + 脏保存阻断**：
+  - `d_write_block` 不带 `confirm:true` 只做 Phase 0 只读预检并返回 plan。
+  - B 侧 `.scl` 带 `confirm:true` 先校验顶层声明名（默认禁多块源，放行需 `allow_multi_block:true`）、禁 `Software units/` 与 `OB1/Main`，再导出删前 XML 备份（旧块 `IsConsistent=false` 默认 fail-closed，强覆盖需 `allow_unbacked_overwrite:true`），写入后一律走 **`CompileAndDiagnosePlc`**（绝不走 `InvokeService('ICompilable','Compile')`）。目标块报错时默认 `on_compile_error:'rollback'` 自动清残片并 `ImportBlock` 回滚（可设 `'keep'`）。
+  - 若连回滚也失败，将写 `pending_recovery.json` 并在 `d_status`/`d_doctor` 暴露 `pendingRecovery`；此时 **`d_save`/`d_finish` 默认拒绝保存**以保住磁盘原 `.apXX` 旧块，直到重写写通该块自动清标，或人工恢复后传 `clear_pending_recovery:true`（强行覆写磁盘才传 `allow_dirty_save:true`）。
+- **编码不用你操心**：含中文的 `.scl` 自动加 BOM，`.s7dcl`/`.s7res`/`.xml` 一律加 BOM。
+- **B 保持默认 `lite` 档（65 可见工具）**：大多数不在 lite 档的 L2 工具由 `d_call` 自动走 B 的 `CallTool` 转发；但 B 源码 `McpServer.ToolBridge.cs` 会拒绝经 `CallTool` 转发 `InvokeObject`/`InvokeService(..., allowWrite:true)`（`DirectOnly` 工具亦不走 `CallTool`），且正向 `.scl` 覆盖后手动固定块号（`AutoNumber=false`）将重置并由网关提前告警（回滚走 XML 可原生保号）。
+- **审计**：每次调用写 `<交付包>/gateway/runtime/d.log`（或 `D_RUNTIME_DIR/d.log`），排查问题先看它。
 
 下面的 §1–§9 是 D 背后三套服务器的差异与裁决，D 已经把它们编码进路由和参数映射；
 只有当你用 `d_call` 绕过 D 的统一动词、或者要判断"这件事该落到哪台"时才需要读。
@@ -45,7 +53,7 @@ d_versions   看装了哪些 TIA
 
 | | **A：tia-portal-mcp v1.4.1** | **B：TIA_MCP_Delivery v2.7.8** | **C：Czarnak tia-portal-mcp** |
 |---|---|---|---|
-| 位置 | `E:\BaiduNetdiskDownload\tia-portal-mcp-1.4.1-release\` | `D:\TIA_MCP\TIA_MCP_Delivery_v2.7.8\` | GitHub `Czarnak/tia-portal-mcp`（需自建） |
+| 位置 | `<交付包>/upstreams/a/`（tia-portal-mcp v1.4.1） | `<交付包>/upstreams/b/`（TIA_MCP_Delivery v2.7.8） | GitHub `Czarnak/tia-portal-mcp`（需自建） |
 | 实现 | Python / PyInstaller | .NET 4.8 | .NET 10 宿主 + .NET 4.8 worker（双进程） |
 | 传输 | HTTP，固定 8000 | stdio 或 HTTP 8765 | stdio（NuGet `TiaMcpServer`） |
 | 支持版本 | **V15 – V21.1** | **V20 / V21** | **仅 V21** |
@@ -53,10 +61,10 @@ d_versions   看装了哪些 TIA
 | 粒度 | 一工具一动作 | 一工具一动作 + 反射取用 | **批量：单工具最多 50 个操作** |
 | 写安全 | 显式确认参数 | `dryRun` | **`bind_project` 绑定 + `expectedContentHash` 乐观锁 + `dryRun`** |
 | 失败语义 | 单次调用失败 | 逐元素收集，关键步抛错 | **首错即停，绝不回滚** |
-| 已接入 | opencode、DSH | WorkBuddy | 未接入 |
+| 已接入 | 统一经网关 D 接入（`install.js` 支持 10 类主流客户端） | 统一经网关 D 接入（同左） | 默认未启用（需 V21 + 安装 C 后改 `d.config.json`） |
 | 独有 | 紧凑 LAD + 中文网络注释 | HMI 设计、`ScaffoldProject` 一键建工程、OPC UA、报警 | 跨引用诊断、网络设备开通、多用户/项目服务器、VCI 独立工作区 |
 
-**本机只装了 V16 + V20，没有 V21 —— C 现在用不了。** 除非将来装 V21，否则实际只有 A、B 可用。
+**若当前机器未安装 TIA V21 且未部署 C（例如仅有 V16 / V20），实际只有 A、B 可用。** 仅当安装 TIA V21、完成 `dotnet tool install -g TiaMcpServer` 并在 `d.config.json` 启用 C 后才可路由到 C。
 
 ## 2. 选型决策
 
@@ -112,8 +120,8 @@ d_versions   看装了哪些 TIA
 
 **B 上更新已有块的两个陷阱**（源码确认）：
 - `ImportPlcExternalSource` 遇到同名外部源报 `"The name is not unique"` → 先 `DeletePlcExternalSource`
-- `GenerateBlocksFromExternalSource` **不覆盖**已有块（只更新时间戳，代码还是旧的）→ 更新块要用
-  `ImportFromDocuments(importOption: 'Override')`，或先删块再生成
+- `GenerateBlocksFromExternalSource` **不覆盖**已有块（只更新时间戳，代码仍是旧的）→ 更新块要用
+  `ImportFromDocuments(importOption: 'Override')`，或先删块再生成（走网关 `d_write_block(format:'scl', confirm:true)` 时，网关已内置删前 XML 备份 + 删除重建 + `CompileAndDiagnosePlc` 编译门 + 失败自动 XML 回滚保护）
 
 ## 5. 默认语言与代码风格
 
@@ -163,7 +171,7 @@ A 原本强制、B 不强制、C 无立场。**按上游分开裁决**，不要�
 | 变量表 | `import_plc_tag_tables` | `PlcBuildAndImport(kind=tagtable)` | `plc_write(create_tag/update_tag)` |
 | UDT | `import_udts` | `PlcBuildAndImport(kind=udt)` | `plc_write(update_type_content)` |
 | 编译 | `compile_plc` | `CompileAndDiagnosePlc` | `compile_check` |
-| 下载 | `download_to_plc` | `CheckDownloadReadiness` → `DownloadToPlc` | ❌ 无（无 PLC 启停） |
+| 下载 | `download_to_plc`（V15–V20 `target_interface` 填 PLC IP；V21 填接口名） | `CheckDownloadReadiness` → `DownloadToPlc`（`targetIpAddress` 始终填 PLC IP） | ❌ 无（无 PLC 启停） |
 | 在线 | `go_online`、`compare_plc_to_online` | `GoOnline`、`CompareSoftwareToOnline` | ❌ 无 |
 | 硬件 | `add_device_from_aml` | `AddDeviceWithFallback`、`SearchHardwareCatalog` | `network_read` / `network_write` |
 | 跨引用 | ❌ | `GetCrossReferences` | `read_cross_references`（独有细化） |

@@ -116,6 +116,7 @@ namespace TiaMcpServer.Siemens
                 // for a GoOnline(address) overload that does not exist and silently fell back to the
                 // configured address, so an ipAddress override was ignored without a word.
                 string routeNote = "";
+                string? appliedTargetIp = null;
                 if (!string.IsNullOrWhiteSpace(ipAddress))
                 {
                     // ApplyConfiguration throws while a connection is up (same manual page).
@@ -134,12 +135,38 @@ namespace TiaMcpServer.Siemens
                             $"GoOnline: ApplyConfiguration did not accept any route to {ipAddress} "
                             + $"(candidates: {DescribeRoutes(route.Candidates)}), so the connection was NOT attempted.");
                     routeNote = " Route: " + route.Description + ".";
+                    appliedTargetIp = ipAddress;
+                }
+                else if (provider.State != OnlineState.Online)
+                {
+                    var projectIp = TryResolveProjectIpAddress(softwarePath);
+                    var autoRoute = SelectDownloadRoute(provider.Configuration, null, projectIp);
+                    if (autoRoute.Error != null && projectIp != null)
+                    {
+                        projectIp = null;
+                        autoRoute = SelectDownloadRoute(provider.Configuration, null, null);
+                    }
+                    if (autoRoute.Applied)
+                    {
+                        routeNote = " Route: " + autoRoute.Description + ".";
+                        appliedTargetIp = projectIp;
+                    }
                 }
 
                 OnlineState resultState;
                 try
                 {
-                    resultState = provider.GoOnline();
+                    try
+                    {
+                        resultState = provider.GoOnline();
+                    }
+                    catch (Exception firstEx) when (DownloadPromptPolicy.ShouldRetryConnectionBeforePrompts(0, firstEx)
+                                                    && TryEnableLegacyCommunication(provider.Configuration))
+                    {
+                        SelectDownloadRoute(provider.Configuration, null, appliedTargetIp);
+                        resultState = provider.GoOnline();
+                        routeNote += " [legacy=true]";
+                    }
                 }
                 catch (Exception ex) when (ex is not PortalException)
                 {
@@ -415,6 +442,105 @@ namespace TiaMcpServer.Siemens
                 "Disconnecting" => $"'{softwarePath}' is disconnecting.",
                 _ => $"'{softwarePath}' online state: {state}."
             };
+        }
+
+        /// <summary>Push or reset the PLC confidential configuration data Master Secret on a reachable CPU via OnlineProvider.</summary>
+        public JsonObject SetOnlinePlcMasterSecret(
+            string softwarePath,
+            string? confidentialPassword = null,
+            bool reset = false,
+            string? pgPcInterface = null,
+            string? targetIpAddress = null,
+            string? password = null)
+        {
+            if (IsProjectNull())
+                return new JsonObject { ["ok"] = false, ["message"] = "No project open." };
+
+            var plcSoftware = GetPlcSoftware(softwarePath);
+            if (plcSoftware == null)
+                return new JsonObject { ["ok"] = false, ["message"] = $"PLC software not found: '{softwarePath}'." };
+
+            var provider = ResolvePlcService<OnlineProvider>(softwarePath, plcSoftware);
+            if (provider == null)
+                return new JsonObject { ["ok"] = false, ["message"] = $"OnlineProvider not available on '{softwarePath}'." };
+
+            if (!reset && string.IsNullOrEmpty(confidentialPassword))
+                return new JsonObject { ["ok"] = false, ["message"] = "Provide confidentialPassword or set reset=true." };
+
+            using var pwdScope = AttachPasswordHandler(provider.Configuration, password);
+            string? explicitIp = string.IsNullOrWhiteSpace(targetIpAddress) ? null : targetIpAddress!.Trim();
+            string? effectiveIp = explicitIp ?? TryResolveProjectIpAddress(softwarePath);
+
+            var route = SelectDownloadRoute(provider.Configuration, pgPcInterface, effectiveIp);
+            if (route.Error != null && explicitIp == null && effectiveIp != null)
+                route = SelectDownloadRoute(provider.Configuration, pgPcInterface, null);
+            if (route.Error != null)
+                return new JsonObject { ["ok"] = false, ["message"] = route.Error };
+
+            bool openedOnline = false;
+            bool attemptedOnline = false;
+            try
+            {
+                try
+                {
+                    if (reset)
+                    {
+                        provider.ResetPlcMasterSecret();
+                    }
+                    else
+                    {
+                        using var sec = CreateSecureString(confidentialPassword);
+                        provider.SetPlcMasterSecret(sec!);
+                    }
+                }
+                catch
+                {
+                    if (provider.State == OnlineState.Offline)
+                    {
+                        attemptedOnline = true;
+                        provider.GoOnline();
+                        openedOnline = true;
+                    }
+                    if (reset)
+                    {
+                        provider.ResetPlcMasterSecret();
+                    }
+                    else
+                    {
+                        using var sec = CreateSecureString(confidentialPassword);
+                        provider.SetPlcMasterSecret(sec!);
+                    }
+                }
+
+                return new JsonObject
+                {
+                    ["ok"] = true,
+                    ["softwarePath"] = softwarePath,
+                    ["action"] = reset ? "ResetPlcMasterSecret" : "SetPlcMasterSecret",
+                    ["pgPcRoute"] = route.Description,
+                    ["message"] = reset
+                        ? $"Online PLC master secret reset on '{softwarePath}' ({route.Description})."
+                        : $"Online PLC master secret set on '{softwarePath}' ({route.Description})."
+                };
+            }
+            catch (Exception ex)
+            {
+                var real = ex is System.Reflection.TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex;
+                return new JsonObject
+                {
+                    ["ok"] = false,
+                    ["softwarePath"] = softwarePath,
+                    ["pgPcRoute"] = route.Description,
+                    ["message"] = $"SetOnlinePlcMasterSecret failed: {real.Message}"
+                };
+            }
+            finally
+            {
+                if ((openedOnline || attemptedOnline) && provider.State != OnlineState.Offline)
+                {
+                    try { provider.GoOffline(); } catch { }
+                }
+            }
         }
     }
 }

@@ -173,7 +173,8 @@ namespace TiaMcpServer.ModelContextProtocol
         public static ResponseMessage CreateProject(
             [Description("directoryPath: folder where project will be created")] string directoryPath,
             [Description("projectName: project name")] string projectName,
-            [Description("closeForeignProject: DEFAULT false. If TIA already has a project open that this session did not open, the call is REFUSED rather than closing the user's work. Only pass true after the user has agreed to close it.")] bool closeForeignProject = false)
+            [Description("closeForeignProject: DEFAULT false. If TIA already has a project open that this session did not open, the call is REFUSED rather than closing the user's work. Only pass true after the user has agreed to close it.")] bool closeForeignProject = false,
+            [Description("supportSimulation: DEFAULT false. Set true to enable 'Support simulation during block compilation' on the new project (required before compiling blocks for PLCSIM / PLCSIM Advanced).")] bool supportSimulation = false)
         {
             try
             {
@@ -191,23 +192,48 @@ namespace TiaMcpServer.ModelContextProtocol
                 {
                     Portal.CloseProject();
                 }
-                var ok = Portal.CreateProject(directoryPath, projectName, closeForeignProject);
+                var ok = Portal.CreateProject(directoryPath, projectName, closeForeignProject, supportSimulation);
                 if (!ok)
                     throw new McpException($"Failed to create project '{projectName}' in '{directoryPath}'", McpErrorCode.InternalError);
 
                 return new ResponseMessage
                 {
-                    Message = $"Project '{projectName}' created in '{directoryPath}'",
+                    Message = $"Project '{projectName}' created in '{directoryPath}'" + (supportSimulation ? " (simulation enabled)" : ""),
                     Meta = new JsonObject
                     {
                         ["timestamp"] = DateTime.Now,
-                        ["success"] = true
+                        ["success"] = true,
+                        ["supportSimulation"] = supportSimulation
                     }
                 };
             }
             catch (Exception ex) when (ex is not McpException)
             {
                 throw new McpException($"Unexpected error creating project: {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
+            }
+        }
+
+        [McpServerTool(Name = "SetProjectSimulationSupport"), Description("[L1][Project] Enable or disable 'Support simulation during block compilation' on the currently open TIA project. Required before compiling/downloading blocks to PLCSIM / PLCSIM Advanced; recompile software blocks after changing.")]
+        public static ResponseMessage SetProjectSimulationSupport(
+            [Description("enabled: true (default) enables simulation during block compilation; false disables it.")] bool enabled = true,
+            [Description("supportVirtualPlc: optional boolean to also set IsVirtualPlcDuringBlockCompilationEnabled when supported by the installed TIA Portal version.")] bool? supportVirtualPlc = null)
+        {
+            try
+            {
+                var data = Portal.SetProjectSimulationSupport(enabled, supportVirtualPlc);
+                return new ResponseMessage
+                {
+                    Message = $"Project simulation support set to {enabled}.",
+                    Meta = data
+                };
+            }
+            catch (PortalException pex)
+            {
+                throw new McpException(pex.Message, pex, pex.Code == PortalErrorCode.InvalidState ? McpErrorCode.InvalidRequest : McpErrorCode.InternalError);
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"Failed setting project simulation support: {ex.Message}{McpHints.Recovery(ex)}", ex, McpErrorCode.InternalError);
             }
         }
 

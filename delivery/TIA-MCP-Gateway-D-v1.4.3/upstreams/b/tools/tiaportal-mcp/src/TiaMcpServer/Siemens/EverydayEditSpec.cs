@@ -185,5 +185,83 @@ namespace TiaMcpServer.Siemens
             var rename = string.Equals(requestedName, currentName, StringComparison.Ordinal) ? "" : $" Its name is now '{currentName}' (not '{requestedName}') — use that name when retrying.";
             return head + $" Already applied to the {what}: {string.Join(", ", applied)}.{rename} The rest was NOT applied.";
         }
+
+        /// <summary>Strictly parses a dotted-quad IPv4 host address (no short-form '10.1' or leading zeros).</summary>
+        public static string? NormalizeAndValidateIpv4(string? ip, out string? error, string fieldName = "ipAddress")
+        {
+            error = null;
+            if (!TryParseStrictIpv4(ip, out var normalized, out var bits, out var parseErr))
+            {
+                error = $"{fieldName}: {parseErr}";
+                return null;
+            }
+            if (bits == 0 || bits == uint.MaxValue)
+            {
+                error = $"{fieldName} '{normalized}' cannot be 0.0.0.0 or 255.255.255.255.";
+                return null;
+            }
+            return normalized;
+        }
+
+        /// <summary>Strictly parses an IPv4 subnet mask with contiguous leading 1-bits (e.g. 255.255.255.0).</summary>
+        public static string? NormalizeAndValidateSubnetMask(string? mask, out string? error, string fieldName = "subnetMask")
+        {
+            error = null;
+            if (!TryParseStrictIpv4(mask, out var normalized, out var bits, out var parseErr))
+            {
+                error = $"{fieldName}: {parseErr}";
+                return null;
+            }
+            uint inv = ~bits;
+            if (bits == 0 || bits == uint.MaxValue || (inv & (inv + 1)) != 0)
+            {
+                error = $"{fieldName} '{normalized}' is not a valid contiguous IPv4 subnet mask (e.g. '255.255.255.0').";
+                return null;
+            }
+            return normalized;
+        }
+
+        private static bool TryParseStrictIpv4(string? raw, out string normalized, out uint bits, out string? error)
+        {
+            normalized = string.Empty;
+            bits = 0;
+            error = null;
+            var s = (raw ?? string.Empty).Trim();
+            if (s.Length == 0)
+            {
+                error = "address is empty.";
+                return false;
+            }
+
+            var parts = s.Split('.');
+            if (parts.Length != 4)
+            {
+                error = $"'{s}' must have 4 dotted decimal octets (e.g. '192.168.250.10').";
+                return false;
+            }
+
+            uint acc = 0;
+            var clean = new string[4];
+            for (int i = 0; i < 4; i++)
+            {
+                var p = parts[i];
+                if (p.Length == 0 || p.Length > 3 || !p.All(c => c >= '0' && c <= '9') || (p.Length > 1 && p[0] == '0'))
+                {
+                    error = $"invalid IPv4 octet '{p}' in '{s}'.";
+                    return false;
+                }
+                if (!byte.TryParse(p, out var b))
+                {
+                    error = $"IPv4 octet '{p}' is out of range 0..255 in '{s}'.";
+                    return false;
+                }
+                clean[i] = b.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                acc = (acc << 8) | b;
+            }
+
+            normalized = string.Join(".", clean);
+            bits = acc;
+            return true;
+        }
     }
 }

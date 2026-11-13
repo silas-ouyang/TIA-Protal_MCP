@@ -50,11 +50,31 @@ namespace TiaMcpServer.Siemens
             string? password = null,
             string? pgPcInterface = null,
             string? targetIpAddress = null,
-            bool abortActiveTests = false)
+            bool abortActiveTests = false,
+            string downloadMode = "software",
+            bool includeHardware = false,
+            string? confidentialPassword = null,
+            bool allowProtectionDowngrade = false,
+            bool acceptUnencryptedSensitiveData = true)
         {
             _logger?.LogInformation(
-                "DownloadToPlc: softwarePath={SoftwarePath} consistentOnly={C} keepDB={K} start={S} stop={T} hasPassword={P} pgPc={I} targetIp={A}",
-                softwarePath, consistentBlocksOnly, keepActualValues, startAfterDownload, stopBeforeDownload, !string.IsNullOrEmpty(password), pgPcInterface, targetIpAddress);
+                "DownloadToPlc: softwarePath={SoftwarePath} consistentOnly={C} keepDB={K} start={S} stop={T} hasPassword={P} hasConfPwd={CP} pgPc={I} targetIp={A} mode={M} includeHw={H}",
+                softwarePath, consistentBlocksOnly, keepActualValues, startAfterDownload, stopBeforeDownload, !string.IsNullOrEmpty(password), !string.IsNullOrEmpty(confidentialPassword), pgPcInterface, targetIpAddress, downloadMode, includeHardware);
+
+            var modeResolution = DownloadPromptPolicy.ResolveDownloadMode(downloadMode, includeHardware);
+            if (modeResolution.Error != null)
+                return new ResponseDownload
+                {
+                    Ok = false,
+                    Message = modeResolution.Error,
+                    Errors = new[] { modeResolution.Error }
+                };
+
+            DownloadOptions downloadOptions = 0;
+            if ((modeResolution.Flags & DownloadOptionFlags.Hardware) != 0) downloadOptions |= DownloadOptions.Hardware;
+            if ((modeResolution.Flags & DownloadOptionFlags.Software) != 0) downloadOptions |= DownloadOptions.Software;
+            if ((modeResolution.Flags & DownloadOptionFlags.SoftwareOnlyChanges) != 0) downloadOptions |= DownloadOptions.SoftwareOnlyChanges;
+            bool includesHardware = (downloadOptions & DownloadOptions.Hardware) != 0;
 
             if (IsProjectNull())
                 return new ResponseDownload { Ok = false, Message = "No project open." };
@@ -70,7 +90,7 @@ namespace TiaMcpServer.Siemens
 
             try
             {
-                var downloadProvider = ResolvePlcService<DownloadProvider>(softwarePath, plcSoftware);
+                var downloadProvider = ResolveDownloadProviderForMode(softwarePath, plcSoftware, includesHardware);
                 if (downloadProvider == null)
                     return new ResponseDownload
                     {
@@ -87,6 +107,8 @@ namespace TiaMcpServer.Siemens
                     };
 
                 using var passwordScope = AttachPasswordHandler(configuration, password);
+                using var accessSecret = CreateSecureString(password);
+                using var masterSecret = CreateSecureString(!string.IsNullOrWhiteSpace(confidentialPassword) ? confidentialPassword : password);
 
                 var promptOptions = new DownloadPromptOptions
                 {
@@ -95,19 +117,31 @@ namespace TiaMcpServer.Siemens
                     StopBeforeDownload = stopBeforeDownload,
                     ConsistentBlocksOnly = consistentBlocksOnly,
                     AbortActiveTests = abortActiveTests,
+                    IncludesHardware = includesHardware,
+                    AllowProtectionDowngrade = allowProtectionDowngrade,
+                    AcceptUnencryptedSensitiveData = acceptUnencryptedSensitiveData,
                 };
 
                 // Both phases get the same answers. The manual's own example answers StartModules in
                 // the POST-download delegate ("sets PLC in RUN mode"); this used to be an empty
                 // lambda, so startAfterDownload=true could leave the CPU in STOP.
-                DownloadConfigurationDelegate preDelegate = config => AnswerDownloadPrompt(config, promptOptions, "pre", prompts);
-                DownloadConfigurationDelegate postDelegate = config => AnswerDownloadPrompt(config, promptOptions, "post", prompts);
+                DownloadConfigurationDelegate preDelegate = config => AnswerDownloadPrompt(config, promptOptions, accessSecret, masterSecret, "pre", prompts);
+                DownloadConfigurationDelegate postDelegate = config => AnswerDownloadPrompt(config, promptOptions, accessSecret, masterSecret, "post", prompts);
 
                 // V21 fix: ConnectionConfiguration does NOT implement IConfiguration, but a
                 // ConfigurationTargetInterface (Modes -> PcInterfaces -> TargetInterfaces) DOES.
                 // Select a target interface (applying its route) and pass THAT to Download();
                 // fall back to the raw configuration if no route is selectable.
-                routeDiagnostics = SelectDownloadRoute(configuration, pgPcInterface, targetIpAddress);
+                string? explicitTargetIp = string.IsNullOrWhiteSpace(targetIpAddress) ? null : targetIpAddress!.Trim();
+                string? projectTargetIp = explicitTargetIp ?? TryResolveProjectIpAddress(softwarePath);
+                string? effectiveTargetIp = explicitTargetIp ?? projectTargetIp;
+
+                routeDiagnostics = SelectDownloadRoute(configuration, pgPcInterface, effectiveTargetIp);
+                if (routeDiagnostics.Error != null && explicitTargetIp == null && projectTargetIp != null)
+                {
+                    // Implicit project IP should not break V21/Softbus route lookup when no route lists that IP.
+                    routeDiagnostics = SelectDownloadRoute(configuration, pgPcInterface, null);
+                }
                 if (routeDiagnostics.Error != null)
                     return new ResponseDownload
                     {
@@ -115,6 +149,10 @@ namespace TiaMcpServer.Siemens
                         Message = routeDiagnostics.Error,
                         Errors = new[] { routeDiagnostics.Error }
                     };
+
+                promptOptions.IsPlcsimTarget =
+                    (!string.IsNullOrWhiteSpace(pgPcInterface) && pgPcInterface!.IndexOf("PLCSIM", StringComparison.OrdinalIgnoreCase) >= 0)
+                    || routeDiagnostics.Description.IndexOf("PLCSIM", StringComparison.OrdinalIgnoreCase) >= 0;
 
                 object? downloadConfig = routeDiagnostics.Configuration ?? configuration;
                 _logger?.LogInformation("DownloadToPlc: PG/PC route = {Route}", routeDiagnostics.Description);
@@ -138,14 +176,22 @@ namespace TiaMcpServer.Siemens
                         Message = "Download(IConfiguration,…) method not found on DownloadProvider. TIA Portal version mismatch?"
                     };
 
-                var rawResult = downloadMethod.Invoke(
+                var rawResult = InvokeV20AwareDownload(
                     downloadProvider,
-                    new object[] { downloadConfig!, preDelegate, postDelegate, DownloadOptions.Software });
+                    downloadMethod,
+                    configuration,
+                    downloadConfig!,
+                    effectiveTargetIp,
+                    preDelegate,
+                    postDelegate,
+                    downloadOptions,
+                    prompts,
+                    routeDiagnostics);
 
                 if (rawResult is not DownloadResult result)
                     return new ResponseDownload { Ok = false, Message = "Download returned an unexpected result type." };
 
-                return BuildDownloadResponse(result, softwarePath, routeDiagnostics, prompts);
+                return BuildDownloadResponse(result, softwarePath, routeDiagnostics, prompts, modeResolution.Label);
             }
             catch (Exception ex)
             {
@@ -171,38 +217,111 @@ namespace TiaMcpServer.Siemens
                     Ok = false,
                     Message = $"Download failed: {real.Message}{routeHint}{ActiveTestHint(prompts)}",
                     Errors = new[] { real.Message },
-                    Meta = new JsonObject { ["softwarePath"] = softwarePath, ["downloadPrompts"] = prompts.DeepClone() }
+                    Meta = new JsonObject
+                    {
+                        ["softwarePath"] = softwarePath,
+                        ["downloadOptions"] = modeResolution.Label,
+                        ["downloadPrompts"] = prompts.DeepClone()
+                    }
                 };
             }
         }
 
+        private DownloadProvider? ResolveDownloadProviderForMode(string softwarePath, PlcSoftware plcSoftware, bool includesHardware)
+        {
+            if (!includesHardware)
+                return ResolvePlcService<DownloadProvider>(softwarePath, plcSoftware);
+
+            DownloadProvider? fallback = null;
+            var sc = GetSoftwareContainer(softwarePath);
+            var di = sc?.Parent as DeviceItem;
+            while (di != null)
+            {
+                var p = di.GetService<DownloadProvider>();
+                if (p != null)
+                {
+                    if (p.Configuration != null) return p;
+                    fallback ??= p;
+                }
+                di = di.Parent as DeviceItem;
+            }
+
+            var swProvider = plcSoftware.GetService<DownloadProvider>();
+            if (swProvider != null && swProvider.Configuration != null) return swProvider;
+            return fallback ?? swProvider;
+        }
+
         /// <summary>Answers one download prompt per <see cref="DownloadPromptPolicy"/> and records what
         /// was asked and what was answered, so the caller can see why a download stopped.</summary>
-        private void AnswerDownloadPrompt(DownloadConfiguration config, DownloadPromptOptions options, string phase, JsonArray log)
+        private void AnswerDownloadPrompt(
+            DownloadConfiguration config,
+            DownloadPromptOptions options,
+            SecureString? accessSecret,
+            SecureString? masterSecret,
+            string phase,
+            JsonArray log)
         {
             var typeName = config.GetType().Name;
-            var decision = DownloadPromptPolicy.Decide(typeName, options);
             string? error = null;
             bool applied = false;
-            if (decision.Selection != null)
-                applied = DownloadConfigSetSelection(config, decision.Selection, out error);
-            else if (decision.Checked != null)
-                applied = DownloadConfigSetChecked(config, decision.Checked.Value, out error);
+            string answerLabel;
+            string why;
+
+            if (config is DownloadPasswordConfiguration pwdCfg)
+            {
+                var secret = config is PlcMasterSecretPassword
+                    ? (masterSecret ?? accessSecret)
+                    : (accessSecret ?? masterSecret);
+
+                if (secret != null)
+                {
+                    try
+                    {
+                        pwdCfg.SetPassword(secret);
+                        applied = true;
+                        answerLabel = "(password supplied)";
+                        why = config is PlcMasterSecretPassword
+                            ? "supplied confidential master secret password"
+                            : "supplied download access password";
+                    }
+                    catch (Exception ex)
+                    {
+                        error = (ex.InnerException ?? ex).Message;
+                        answerLabel = "(password failed)";
+                        why = "SetPassword threw: " + error;
+                    }
+                }
+                else
+                {
+                    answerLabel = "(missing password)";
+                    why = "DownloadPasswordConfiguration requested a password, but none was supplied";
+                }
+            }
+            else
+            {
+                var decision = DownloadPromptPolicy.Decide(typeName, options);
+                if (decision.Selection != null)
+                    applied = DownloadConfigSetSelection(config, decision.Selection, out error);
+                else if (decision.Checked != null)
+                    applied = DownloadConfigSetChecked(config, decision.Checked.Value, out error);
+
+                answerLabel = decision.Selection ?? (decision.Checked.HasValue ? (decision.Checked.Value ? "Checked" : "Unchecked") : "(unanswered)");
+                why = decision.Why;
+            }
 
             string message = "";
             try { message = config.GetType().GetProperty("Message")?.GetValue(config) as string ?? ""; }
             catch { }
 
-            _logger?.LogDebug("Download prompt ({Phase}) {Type}: {Answer} applied={Applied}", phase, typeName,
-                decision.Selection ?? decision.Checked?.ToString() ?? "(unanswered)", applied);
+            _logger?.LogDebug("Download prompt ({Phase}) {Type}: {Answer} applied={Applied}", phase, typeName, answerLabel, applied);
             var entry = new JsonObject
             {
                 ["phase"] = phase,
                 ["type"] = typeName,
                 ["message"] = message,
-                ["answer"] = decision.Selection ?? (decision.Checked.HasValue ? (decision.Checked.Value ? "Checked" : "Unchecked") : "(unanswered)"),
+                ["answer"] = answerLabel,
                 ["applied"] = applied,
-                ["why"] = decision.Why,
+                ["why"] = why,
             };
             if (error != null) entry["error"] = error;
             lock (log) log.Add(entry);
@@ -381,21 +500,53 @@ namespace TiaMcpServer.Siemens
                     pool = byName;
                 }
 
+                List<HostNicInfo>? hostNics = null;
                 if (!string.IsNullOrWhiteSpace(targetIpAddress))
                 {
                     var byIp = pool
                         .Where(r => r.TargetAddresses.Any(t => string.Equals(t, targetIpAddress, StringComparison.OrdinalIgnoreCase)))
                         .ToList();
-                    if (byIp.Count == 0)
+                    if (byIp.Count > 0)
                     {
-                        selection.Error =
-                            $"No download route reaches target IP '{targetIpAddress}'. Available routes: {DescribeRoutes(pool)}";
-                        return selection;
+                        pool = byIp;
                     }
-                    pool = byIp;
+                    else
+                    {
+                        // TIA V15-V20 leaves TargetAddresses empty on ConfigurationTargetInterface until
+                        // a ConfigurationAddress is resolved/created or V21 pre-populates them.
+                        hostNics = DownloadRoutePolicy.ReadHostIPv4Nics();
+                        bool allPoolUnpopulated = pool.All(r => r.TargetAddresses.Count == 0);
+                        var unpopulated = pool.Where(r => r.TargetAddresses.Count == 0).ToList();
+                        var unpopulatedNames = unpopulated.Select(u => u.PcInterfaceName).ToList();
+                        if (DownloadRoutePolicy.ShouldKeepUnpopulatedFallback(allPoolUnpopulated, unpopulatedNames, targetIpAddress, hostNics))
+                        {
+                            pool = unpopulated;
+                        }
+                        else
+                        {
+                            selection.Error =
+                                $"No download route reaches target IP '{targetIpAddress}'. Available routes: {DescribeRoutes(pool)}";
+                            return selection;
+                        }
+                    }
                 }
 
                 ScoreDownloadRoutes(pool, targetIpAddress);
+                if (!string.IsNullOrWhiteSpace(targetIpAddress))
+                {
+                    hostNics ??= DownloadRoutePolicy.ReadHostIPv4Nics();
+                    foreach (var route in pool)
+                    {
+                        route.Score += DownloadRoutePolicy.ComputeHostNicSubnetScore(route.PcInterfaceName, targetIpAddress, hostNics);
+                        route.Score += ScoreSubnetOrPcAddresses(route.Target, targetIpAddress!);
+                    }
+                }
+
+                var applyAddrMethod = connectionConfiguration.GetType()
+                    .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(m => m.Name == "ApplyConfiguration"
+                        && m.GetParameters().Length == 1
+                        && m.GetParameters()[0].ParameterType.Name == "ConfigurationAddress");
 
                 var applyMethod = connectionConfiguration.GetType()
                     .GetMethods(BindingFlags.Public | BindingFlags.Instance)
@@ -409,6 +560,24 @@ namespace TiaMcpServer.Siemens
 
                 foreach (var route in ranked)
                 {
+                    if (!string.IsNullOrWhiteSpace(targetIpAddress)
+                        && !IsPlcsimSoftbusRoute(route.Target)
+                        && applyAddrMethod != null)
+                    {
+                        try
+                        {
+                            var addr = TryResolveOrCreateConfigurationAddress(route.Target, targetIpAddress!);
+                            if (addr != null && applyAddrMethod.Invoke(connectionConfiguration, new object[] { addr }) is bool addrOk && addrOk)
+                            {
+                                selection.Configuration = route.Target;
+                                selection.Description = $"{route.Describe()} [addr={targetIpAddress}]";
+                                selection.Applied = true;
+                                return selection;
+                            }
+                        }
+                        catch { }
+                    }
+
                     try
                     {
                         if (applyMethod?.Invoke(connectionConfiguration, new[] { route.Target }) is bool ok && ok)
@@ -430,6 +599,285 @@ namespace TiaMcpServer.Siemens
             }
             catch { }
             return selection;
+        }
+
+        private string? TryResolveProjectIpAddress(string softwarePath)
+        {
+            if (string.IsNullOrWhiteSpace(softwarePath))
+                return null;
+
+            try
+            {
+                var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var candidates = new List<string> { softwarePath.Trim() };
+                int slash = softwarePath.IndexOf('/');
+                if (slash > 0)
+                    candidates.Add(softwarePath.Substring(0, slash).Trim());
+
+                foreach (var candidate in candidates)
+                {
+                    if (!visited.Add(candidate)) continue;
+                    var ipObj = GetDeviceIpAddress(candidate);
+                    var found = ipObj["found"]?.GetValue<bool>() ?? false;
+                    var ip = ipObj["ipAddress"]?.GetValue<string>();
+                    if (found && !string.IsNullOrWhiteSpace(ip))
+                        return ip!.Trim();
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static bool IsPlcsimSoftbusRoute(object? targetObj)
+        {
+            try
+            {
+                var pc = (targetObj as ConfigurationTargetInterface)?.Parent as ConfigurationPcInterface;
+                var mode = pc?.Parent as ConfigurationMode;
+                return string.Equals(mode?.Name, "PLCSIM", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static int ScoreSubnetOrPcAddresses(object? targetObj, string targetIp)
+        {
+            try
+            {
+                if ((targetObj as ConfigurationTargetInterface)?.Parent is not ConfigurationPcInterface pcIface)
+                    return 0;
+
+                foreach (var a in ReadConfigurationAddresses(pcIface))
+                {
+                    if (string.Equals(a, targetIp, StringComparison.OrdinalIgnoreCase))
+                        return 120;
+                }
+
+                foreach (ConfigurationSubnet subnet in pcIface.Subnets)
+                {
+                    foreach (var a in ReadConfigurationAddresses(subnet))
+                    {
+                        if (string.Equals(a, targetIp, StringComparison.OrdinalIgnoreCase))
+                            return 100;
+                    }
+                }
+            }
+            catch { }
+            return 0;
+        }
+
+        private static ConfigurationAddress? TryFindOrCreateAddressInComposition(
+            ConfigurationAddressComposition? composition,
+            string targetIp,
+            bool allowCreate = true)
+        {
+            if (composition == null || string.IsNullOrWhiteSpace(targetIp))
+                return null;
+
+            try
+            {
+                foreach (ConfigurationAddress addr in composition)
+                {
+                    if (string.Equals(addr.Address, targetIp, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(addr.Name, targetIp, StringComparison.OrdinalIgnoreCase))
+                        return addr;
+                }
+            }
+            catch { }
+
+            try
+            {
+                var existing = composition.Find(targetIp);
+                if (existing != null)
+                    return existing;
+            }
+            catch { }
+
+            if (!allowCreate)
+                return null;
+
+            try
+            {
+                return composition.Create(targetIp);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static ConfigurationAddress? TryResolveOrCreateConfigurationAddress(object? targetObj, string targetIp)
+        {
+            if (targetObj is not ConfigurationTargetInterface targetIface || string.IsNullOrWhiteSpace(targetIp))
+                return null;
+
+            var direct = TryFindOrCreateAddressInComposition(targetIface.Addresses, targetIp, allowCreate: true);
+            if (direct != null)
+                return direct;
+
+            if (targetIface.Parent is ConfigurationPcInterface pcIface)
+            {
+                var onPc = TryFindOrCreateAddressInComposition(pcIface.Addresses, targetIp, allowCreate: false);
+                if (onPc != null)
+                    return onPc;
+
+                try
+                {
+                    foreach (ConfigurationSubnet subnet in pcIface.Subnets)
+                    {
+                        var onSubnet = TryFindOrCreateAddressInComposition(subnet.Addresses, targetIp, allowCreate: false);
+                        if (onSubnet != null)
+                            return onSubnet;
+                    }
+                }
+                catch { }
+            }
+
+            return null;
+        }
+
+        private static void TryReapplyConfiguration(object? connectionConfiguration, object? targetOrAddress)
+        {
+            if (connectionConfiguration == null || targetOrAddress == null)
+                return;
+
+            try
+            {
+                var method = connectionConfiguration.GetType()
+                    .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(m => m.Name == "ApplyConfiguration"
+                        && m.GetParameters().Length == 1
+                        && m.GetParameters()[0].ParameterType.IsInstanceOfType(targetOrAddress));
+                method?.Invoke(connectionConfiguration, new[] { targetOrAddress });
+            }
+            catch { }
+        }
+
+        private static ConfigurationAccessibleDevice? TryFindAccessibleDevice(object? targetObj, string targetIp)
+        {
+            try
+            {
+                if ((targetObj as ConfigurationTargetInterface)?.Parent is not ConfigurationPcInterface pcIface)
+                    return null;
+
+                var devices = pcIface.GetAccessibleDevices();
+                if (devices == null)
+                    return null;
+
+                foreach (var dev in devices)
+                {
+                    if (string.Equals(dev.Address?.Trim(), targetIp.Trim(), StringComparison.OrdinalIgnoreCase))
+                        return dev;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private object? InvokeV20AwareDownload(
+            object downloadProvider,
+            MethodInfo download4Method,
+            object? connectionConfiguration,
+            object downloadConfig,
+            string? effectiveTargetIp,
+            DownloadConfigurationDelegate preDelegate,
+            DownloadConfigurationDelegate postDelegate,
+            DownloadOptions downloadOptions,
+            JsonArray prompts,
+            DownloadRouteSelection routeDiagnostics)
+        {
+            var download5Method = downloadProvider.GetType()
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m =>
+                {
+                    if (m.Name != "Download") return false;
+                    var p = m.GetParameters();
+                    return p.Length == 5
+                        && p[1].ParameterType.Name == "ConfigurationAddress"
+                        && p[2].ParameterType.Name == "DownloadConfigurationDelegate";
+                });
+
+            bool softbus = IsPlcsimSoftbusRoute(downloadConfig);
+            ConfigurationAddress? targetAddr = (!softbus && !string.IsNullOrWhiteSpace(effectiveTargetIp))
+                ? TryResolveOrCreateConfigurationAddress(downloadConfig, effectiveTargetIp!)
+                : null;
+
+            bool prefer5Arg = download5Method != null && targetAddr != null && !softbus;
+
+            object? InvokePrimary() => prefer5Arg
+                ? download5Method!.Invoke(downloadProvider, new[] { downloadConfig, (object)targetAddr!, preDelegate, postDelegate, downloadOptions })
+                : download4Method.Invoke(downloadProvider, new[] { downloadConfig, preDelegate, postDelegate, downloadOptions });
+
+            var attemptErrors = new List<string>();
+            Exception? lastException = null;
+
+            Exception Unwrap(Exception ex) =>
+                ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex;
+
+            object? TryAttempt(string label, Func<object?> call, out bool stoppedAfterPrompts)
+            {
+                stoppedAfterPrompts = false;
+                try
+                {
+                    var res = call();
+                    if (!string.IsNullOrEmpty(label) && !routeDiagnostics.Description.Contains(label))
+                        routeDiagnostics.Description += $" [{label}]";
+                    return res;
+                }
+                catch (Exception ex)
+                {
+                    var inner = Unwrap(ex);
+                    lastException = inner;
+                    attemptErrors.Add($"{label}: {inner.Message}");
+                    if (!DownloadPromptPolicy.ShouldRetryConnectionBeforePrompts(prompts.Count, inner))
+                        stoppedAfterPrompts = true;
+                    return null;
+                }
+            }
+
+            bool stop;
+            var primaryRes = TryAttempt(prefer5Arg ? "5arg-ip" : "4arg", InvokePrimary, out stop);
+            if (primaryRes != null || stop)
+            {
+                if (primaryRes != null) return primaryRes;
+                throw lastException!;
+            }
+
+            if (TryEnableLegacyCommunication(connectionConfiguration))
+            {
+                TryReapplyConfiguration(connectionConfiguration, downloadConfig);
+                var legacyRes = TryAttempt(prefer5Arg ? "5arg-ip,legacy" : "4arg,legacy", InvokePrimary, out stop);
+                if (legacyRes != null || stop)
+                {
+                    if (legacyRes != null) return legacyRes;
+                    throw lastException!;
+                }
+            }
+
+            if (prefer5Arg)
+            {
+                TryReapplyConfiguration(connectionConfiguration, downloadConfig);
+                var res4Config = TryAttempt("4arg-targetIface", () =>
+                    download4Method.Invoke(downloadProvider, new[] { downloadConfig, preDelegate, postDelegate, downloadOptions }), out stop);
+                if (res4Config != null || stop)
+                {
+                    if (res4Config != null) return res4Config;
+                    throw lastException!;
+                }
+            }
+
+            // Note: Do NOT fall back to Download(targetAddr, ...) or Download(accessibleDevice, ...).
+            // In TIA Openness V20, ConfigurationAddressWrapper and AccessibleDeviceWrapper return null
+            // from get_ConnectionPoint(), causing OnlineAccessPathDlc.ApplyOnlineSettings to throw
+            // ArgumentNullException("connectionPoint"), crash Siemens.Automation.Portal.exe, and mask
+            // the real pre-prompt error from Attempt 1 / 4arg-targetIface.
+            if (lastException != null) throw lastException!;
+
+            throw new InvalidOperationException(
+                $"{lastException?.Message ?? "Download failed"} (attempts: {string.Join("; ", attemptErrors)})",
+                lastException);
         }
 
         // Read a property by name and materialize it as a sequence (Openness compositions are
@@ -605,7 +1053,8 @@ namespace TiaMcpServer.Siemens
             DownloadResult result,
             string softwarePath,
             DownloadRouteSelection? route,
-            JsonArray prompts)
+            JsonArray prompts,
+            string downloadOptionsLabel)
         {
             var errors = new List<string>();
             var warnings = new List<string>();
@@ -631,7 +1080,7 @@ namespace TiaMcpServer.Siemens
             return new ResponseDownload
             {
                 Ok = ok,
-                Message = $"Download {result.State}: {result.ErrorCount} error(s), {result.WarningCount} warning(s)."
+                Message = $"Download ({downloadOptionsLabel}) {result.State}: {result.ErrorCount} error(s), {result.WarningCount} warning(s)."
                           + targetNote
                           + (ok ? "" : ActiveTestHint(prompts)),
                 State = result.State.ToString(),
@@ -642,6 +1091,7 @@ namespace TiaMcpServer.Siemens
                 Meta = new JsonObject
                 {
                     ["softwarePath"] = softwarePath,
+                    ["downloadOptions"] = downloadOptionsLabel,
                     ["timestamp"] = DateTime.Now,
                     ["downloadState"] = result.State.ToString(),
                     // Which PG/PC adapter the download actually left through — the thing you need

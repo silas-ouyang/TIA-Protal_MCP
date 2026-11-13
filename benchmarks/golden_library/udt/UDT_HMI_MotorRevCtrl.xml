@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <DocumentInfo>
+    <Created>2000-01-01T00:00:00.0000000Z</Created>
+    <ExportSetting>None</ExportSetting>
+    <InstalledProducts />
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="bManualMode" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI手自动切换（TRUE手动）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualFwdCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI手动正转点动/启动</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualRevCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI手动反转点动/启动</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bManualStopCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI手动停止</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bResetCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI故障复位命令</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tFeedbackTimeout" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">接触器吸合反馈超时时间（默认 T#2s）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tReverseDeadband" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">正反转切换停机死区时间（默认 T#1s）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bRunningFwd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：正在正转</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bRunningRev" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：正在反转</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bFault" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：综合故障</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="wStatus" Datatype="Word">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态码：16#0000正常, 16#8401热过载, 16#8402接触器反馈超时, 16#8403急停激活</MultiLanguageText>
+              </Comment>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_HMI_MotorRevCtrl</Name>
+      <Namespace />
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

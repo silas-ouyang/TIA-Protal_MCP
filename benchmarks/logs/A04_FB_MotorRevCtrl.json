@@ -1,0 +1,29 @@
+{
+  "id": "A04",
+  "blockName": "FB_MotorRevCtrl",
+  "udtName": "UDT_HMI_MotorRevCtrl",
+  "firstPassSuccess": false,
+  "totalAttempts": 2,
+  "finalStatus": "PASS",
+  "attempts": [
+    {
+      "attempt": 1,
+      "errors": [],
+      "warnings": [
+        "State=Warning; Description=The parameter '#contactorFwd' might not be initialized.; Path=174; DateTime=7/11/2026 18:21:53",
+        "State=Warning; Description=The parameter '#contactorRev' might not be initialized.; Path=174; DateTime=7/11/2026 18:21:53",
+        "State=Warning; Description=The parameter '#contactorFwd' might not be initialized.; Path=179; DateTime=7/11/2026 18:21:53",
+        "State=Warning; Description=The parameter '#contactorRev' might not be initialized.; Path=180; DateTime=7/11/2026 18:21:53"
+      ],
+      "rootCause": "违反西门子编程规范 DA008（禁止在块内回读 VAR_OUTPUT 输出形参）。在赋值 #running 及 #ioHmi 时直接读取了输出形参 #contactorFwd 与 #contactorRev，导致博途编译器判定输出形参可能未初始化并产生 4 处 Warning。",
+      "fixApplied": "重构输出段逻辑：完全使用 VAR_TEMP 临时变量 tempOutFwd 与 tempOutRev 进行互锁计算并赋给 #running 与 #ioHmi 状态反馈，在块最末尾仅单向写入 #contactorFwd 与 #contactorRev，消除全部输出形参回读。"
+    },
+    {
+      "attempt": 2,
+      "errors": [],
+      "warnings": [],
+      "rootCause": "None",
+      "fixApplied": "None"
+    }
+  ]
+}

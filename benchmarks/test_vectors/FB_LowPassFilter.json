@@ -1,0 +1,822 @@
+{
+  "blockId": "A02",
+  "blockName": "FB_LowPassFilter",
+  "udtName": "UDT_HMI_LowPassFilter",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "enable": false,
+      "rawValue": 0.0,
+      "alpha": 0.2,
+      "reset": false
+    },
+    "ioHmi": {
+      "bBypassFilter": false,
+      "bResetCmd": false,
+      "rAlpha": 0.2,
+      "rMaxDeltaPerScan": 0.0,
+      "rRawInput": 0.0,
+      "rFilteredOutput": 0.0,
+      "bInitialized": false,
+      "bError": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statPrevOut": 0.0,
+      "statInitialized": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：未使能(enable=FALSE)为16#7000；使能瞬间冷启动无阶跃同步至当前采样值50.0",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "enable=FALSE，系统待机，valid=FALSE，状态码16#7000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "enable": false,
+            "rawValue": 0.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 0.0,
+            "valid": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "enable置TRUE，rawValue=50.0，冷启动初始化无阶跃同步statPrevOut=50.0，valid=TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 10,
+          "inputs": {
+            "enable": true,
+            "rawValue": 50.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 0.0,
+            "rFilteredOutput": 0.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 50.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：一阶惯性低通滤波连续迭代阶跃响应（Alpha=0.2，从50阶跃到100）",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第1周期：输入跳变到100.0，y(1) = 50 + 0.2*(100-50) = 60.0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 20,
+          "inputs": {
+            "enable": true,
+            "rawValue": 100.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 60.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 60.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 60.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第2周期：输入保持100.0，y(2) = 60 + 0.2*(100-60) = 68.0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 30,
+          "inputs": {
+            "enable": true,
+            "rawValue": 100.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 60.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 60.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 68.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 68.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 68.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第3周期：输入保持100.0，y(3) = 68 + 0.2*(100-68) = 74.4",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 40,
+          "inputs": {
+            "enable": true,
+            "rawValue": 100.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 68.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 68.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 74.4,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 74.4,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 74.4,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停/切断：在滤波运行过程中enable切为FALSE，滤波实例立即失能切断并复位初始化标志",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "enable变为FALSE，valid立即为FALSE，status变为16#7000，statInitialized重置",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "enable": false,
+            "rawValue": 100.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 74.4,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 74.4,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 100.0,
+            "valid": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停/未使能状态下尝试复位：enable=FALSE时施加reset=TRUE或bResetCmd=TRUE，无法激活滤波输出",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "未使能时触发复位，保持16#7000，valid保持FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 60,
+          "inputs": {
+            "enable": false,
+            "rawValue": 80.0,
+            "alpha": 0.2,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": true,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": true,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 80.0,
+            "valid": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": true,
+            "rRawInput": 80.0,
+            "rFilteredOutput": 80.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "bResetCmd": true,
+            "rRawInput": 80.0,
+            "rFilteredOutput": 80.0,
+            "bInitialized": false,
+            "bError": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "传感器尖峰脉冲剔除与斜率限幅保护：rMaxDeltaPerScan=10.0，输入突加900.0脉冲，幅值被严格限幅",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "上一周期为50.0，本周期输入跳变到950.0(差值900)，限幅后差值仅为10.0，输出50 + 0.5*10 = 55.0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 70,
+          "inputs": {
+            "enable": true,
+            "rawValue": 950.0,
+            "alpha": 0.5,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.5,
+            "rMaxDeltaPerScan": 10.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.5,
+            "rMaxDeltaPerScan": 10.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 55.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 950.0,
+            "rFilteredOutput": 55.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 950.0,
+            "rFilteredOutput": 55.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "大步长滤波收敛性保护：验证滤波器在持续大偏差输入下稳定收敛无越界发散",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "连续大信号输入下滤波输出平稳上升，无NaN或越界异常",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 80,
+          "inputs": {
+            "enable": true,
+            "rawValue": 200.0,
+            "alpha": 0.5,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.5,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.5,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 100.0,
+            "rFilteredOutput": 100.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 150.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 200.0,
+            "rFilteredOutput": 150.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 200.0,
+            "rFilteredOutput": 150.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：HMI手动直通旁路(bBypassFilter)切入与切出无扰测试",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "bBypassFilter置TRUE，直通旁路生效，filteredValue直接等于rawValue=88.8",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 90,
+          "inputs": {
+            "enable": true,
+            "rawValue": 88.8,
+            "alpha": 0.1,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": true,
+            "bResetCmd": false,
+            "rAlpha": 0.1,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": true,
+            "bResetCmd": false,
+            "rAlpha": 0.1,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 88.8,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 88.8,
+            "rFilteredOutput": 88.8,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 88.8,
+            "rFilteredOutput": 88.8,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "bBypassFilter切回FALSE，从直通值88.8平滑恢复滤波计算",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "enable": true,
+            "rawValue": 100.0,
+            "alpha": 0.2,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 88.8,
+            "rFilteredOutput": 88.8,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": 0.2,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 88.8,
+            "rFilteredOutput": 88.8,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 91.04,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 91.04,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rRawInput": 100.0,
+            "rFilteredOutput": 91.04,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "参数配置冲突：Alpha滤波系数超出有效范围(<=0.0 或 >1.0)，报ERR_ALPHA_RANGE(16#8200)并钳位到1.0",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "Alpha参数给定-0.5，越界报错16#8200，有效系数钳位为1.0直接穿透输出",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 110,
+          "inputs": {
+            "enable": true,
+            "rawValue": 66.0,
+            "alpha": -0.5,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": -0.5,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": false,
+            "rAlpha": -0.5,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 50.0,
+            "rFilteredOutput": 50.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "filteredValue": 66.0,
+            "valid": true,
+            "error": true,
+            "status": "16#8200"
+          },
+          "expectedHmi_out": {
+            "rRawInput": 66.0,
+            "rFilteredOutput": 66.0,
+            "bInitialized": true,
+            "bError": true,
+            "wStatus": "16#8200"
+          },
+          "expectedHmi": {
+            "rRawInput": 66.0,
+            "rFilteredOutput": 66.0,
+            "bInitialized": true,
+            "bError": true,
+            "wStatus": "16#8200"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "参数错误后执行外部/HMI复位恢复正常状态",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "更正Alpha=0.25并执行reset=TRUE，错误清除，状态恢复16#0000并同步新输入",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 120,
+          "inputs": {
+            "enable": true,
+            "rawValue": 70.0,
+            "alpha": 0.25,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bBypassFilter": false,
+            "bResetCmd": true,
+            "rAlpha": 0.25,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 66.0,
+            "rFilteredOutput": 66.0,
+            "bInitialized": true,
+            "bError": true,
+            "wStatus": "16#8200"
+          },
+          "ioHmi": {
+            "bBypassFilter": false,
+            "bResetCmd": true,
+            "rAlpha": 0.25,
+            "rMaxDeltaPerScan": 0.0,
+            "rRawInput": 66.0,
+            "rFilteredOutput": 66.0,
+            "bInitialized": true,
+            "bError": true,
+            "wStatus": "16#8200"
+          },
+          "expectedOutputs": {
+            "filteredValue": 70.0,
+            "valid": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "rRawInput": 70.0,
+            "rFilteredOutput": 70.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "rRawInput": 70.0,
+            "rFilteredOutput": 70.0,
+            "bInitialized": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

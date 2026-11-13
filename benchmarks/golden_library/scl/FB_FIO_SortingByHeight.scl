@@ -1,0 +1,296 @@
+﻿FUNCTION_BLOCK "FB_FIO_SortingByHeight"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // Factory I/O Emergency Stop（常闭，TRUE=正常）
+      startBtn : Bool;   // Factory I/O Start 按钮（常开，上升沿启动）
+      stopBtn : Bool;   // Factory I/O Stop 按钮（常闭，FALSE=请求停止）
+      resetBtn : Bool;   // Factory I/O Reset 按钮（常开，上升沿复位）
+      palletSensor : Bool;   // 高低探头处托盘到位光电传感器
+      lowSensor : Bool;   // 低位光电传感器（高件和低件均遮挡）
+      highSensor : Bool;   // 高位光电传感器（仅高件遮挡）
+      loadedSensor : Bool;   // 转接段到位光电传感器
+      atHighExit : Bool;   // 高件推杆前光电传感器
+      atLowExit : Bool;   // 低件推杆前光电传感器
+   END_VAR
+
+   VAR_OUTPUT 
+      conveyorEntry : Bool;   // 入口测量段传送带电机
+      conveyorExit : Bool;   // 分拣主传送带电机
+      loadRoller : Bool;   // 中间过渡滚筒电机
+      pusherHigh : Bool;   // 高件分拣推杆执行器
+      pusherLow : Bool;   // 低件分拣推杆执行器
+      startLight : Bool;   // 运行指示灯
+      faultLight : Bool;   // 故障指示灯
+      error : Bool;   // 故障标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_SortingByHeight";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statStep : Int;   // 0:IDLE, 10:FEED_DETECT, 20:TRANSFER_WAIT_EXIT, 30:PUSH_HIGH, 40:PUSH_LOW, 99:FAULT
+      statRunning : Bool;
+      statStopReq : Bool;   // 循环尾停机请求锁存（防卡步）
+      statPartType : Int;   // 1:低件, 2:高件
+      statStartOld : Bool;
+      statResetOld : Bool;
+      instStepTimer : TON_TIME;   // 步序超时监控定时器
+      instPushTimer : TON_TIME;   // 推杆保持时间定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempStartRise : Bool;
+      tempResetRise : Bool;
+      tempStopActive : Bool;
+      tempConvEntry : Bool;
+      tempConvExit : Bool;
+      tempLoadRoller : Bool;
+      tempPushHigh : Bool;
+      tempPushLow : Bool;
+      tempTimeout : Time;
+      tempHoldTime : Time;
+   END_VAR
+
+   VAR CONSTANT 
+      STEP_IDLE : Int := 0;
+      STEP_FEED_DETECT : Int := 10;
+      STEP_WAIT_EXIT : Int := 20;
+      STEP_PUSH_HIGH : Int := 30;
+      STEP_PUSH_LOW : Int := 40;
+      STEP_FAULT : Int := 99;
+      STATUS_OK : Word := 16#0000;
+      STATUS_IDLE : Word := 16#7000;
+      ERR_TIMEOUT : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempStartRise := FALSE;
+    #tempResetRise := FALSE;
+    #tempStopActive := FALSE;
+    #tempConvEntry := FALSE;
+    #tempConvExit := FALSE;
+    #tempLoadRoller := FALSE;
+    #tempPushHigh := FALSE;
+    #tempPushLow := FALSE;
+    #tempTimeout := T#8s;
+    #tempHoldTime := T#800ms;
+
+    // 参数时间获取与缺省保护
+    IF #ioHmi.tTransferTimeout > T#0s THEN
+        #tempTimeout := #ioHmi.tTransferTimeout;
+    ELSE
+        #tempTimeout := T#8s;
+    END_IF;
+
+    IF #ioHmi.tPusherHoldTime > T#0s THEN
+        #tempHoldTime := #ioHmi.tPusherHoldTime;
+    ELSE
+        #tempHoldTime := T#800ms;
+    END_IF;
+
+    // 按钮取沿检测
+    #tempStartRise := (#startBtn OR #ioHmi.bStartCmd) AND (NOT #statStartOld);
+    #statStartOld := #startBtn OR #ioHmi.bStartCmd;
+    IF #ioHmi.bStartCmd THEN #ioHmi.bStartCmd := FALSE; END_IF;
+
+    #tempResetRise := (#resetBtn OR #ioHmi.bResetCmd) AND (NOT #statResetOld);
+    #statResetOld := #resetBtn OR #ioHmi.bResetCmd;
+    IF #ioHmi.bResetCmd THEN #ioHmi.bResetCmd := FALSE; END_IF;
+
+    // 停止按钮（常闭触点，FALSE表示按下停止）防卡步请求
+    #tempStopActive := (NOT #stopBtn) OR #ioHmi.bStopCmd;
+    IF #ioHmi.bStopCmd THEN #ioHmi.bStopCmd := FALSE; END_IF;
+
+    IF #tempStopActive THEN
+        #statStopReq := TRUE;
+    END_IF;
+
+    // 故障复位
+    IF #tempResetRise AND (#statStep = #STEP_FAULT) AND #eStopOk THEN
+        #statStep := #STEP_IDLE;
+        #statRunning := FALSE;
+        #statStopReq := FALSE;
+    END_IF;
+
+    // 急停处理 (最高优)
+    IF NOT #eStopOk THEN
+        #statStep := #STEP_FAULT;
+        #statRunning := FALSE;
+    END_IF;
+
+    // 手自动模式分支
+    IF #ioHmi.bManualMode THEN
+        #statRunning := FALSE;
+        #statStep := #STEP_IDLE;
+        #tempConvEntry := #ioHmi.bManualEntryConv;
+        #tempConvExit := #ioHmi.bManualExitConv;
+        #tempLoadRoller := FALSE;
+        #tempPushHigh := #ioHmi.bManualPusherHigh;
+        #tempPushLow := #ioHmi.bManualPusherLow;
+    ELSE
+        CASE #statStep OF
+            #STEP_IDLE:
+                #tempConvEntry := FALSE;
+                #tempConvExit := FALSE;
+                #tempLoadRoller := FALSE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := FALSE;
+                #statRunning := FALSE;
+                #instStepTimer(IN := FALSE, PT := #tempTimeout);
+                #instPushTimer(IN := FALSE, PT := #tempHoldTime);
+                IF #tempStartRise AND #eStopOk THEN
+                    #statRunning := TRUE;
+                    #statStopReq := FALSE;
+                    #statStep := #STEP_FEED_DETECT;
+                END_IF;
+
+            #STEP_FEED_DETECT:
+                #tempConvEntry := TRUE;
+                #tempConvExit := TRUE;
+                #tempLoadRoller := TRUE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := FALSE;
+                #statRunning := TRUE;
+
+                // 循环尾优雅停机（非阻塞防卡步）
+                IF #statStopReq AND (NOT #palletSensor) THEN
+                    #statStep := #STEP_IDLE;
+                    #statRunning := FALSE;
+                    #statStopReq := FALSE;
+                ELSIF #palletSensor THEN
+                    // 托盘到达测量段，根据传感器判断工件高低
+                    IF #highSensor AND #lowSensor THEN
+                        #statPartType := 2; // 高件
+                        #statStep := #STEP_WAIT_EXIT;
+                    ELSIF #lowSensor THEN
+                        #statPartType := 1; // 低件
+                        #statStep := #STEP_WAIT_EXIT;
+                    END_IF;
+                END_IF;
+
+            #STEP_WAIT_EXIT:
+                #tempConvEntry := FALSE;
+                #tempConvExit := TRUE;
+                #tempLoadRoller := TRUE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := FALSE;
+                #statRunning := TRUE;
+
+                #instStepTimer(IN := TRUE, PT := #tempTimeout);
+                IF #instStepTimer.Q THEN
+                    #instStepTimer(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSE
+                    IF (#statPartType = 2) AND #atHighExit THEN
+                        #instStepTimer(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_PUSH_HIGH;
+                    ELSIF (#statPartType = 1) AND #atLowExit THEN
+                        #instStepTimer(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_PUSH_LOW;
+                    END_IF;
+                END_IF;
+
+            #STEP_PUSH_HIGH:
+                #tempConvEntry := FALSE;
+                #tempConvExit := FALSE;
+                #tempLoadRoller := FALSE;
+                #tempPushHigh := TRUE;
+                #tempPushLow := FALSE;
+                #statRunning := TRUE;
+
+                #instPushTimer(IN := TRUE, PT := #tempHoldTime);
+                IF #instPushTimer.Q THEN
+                    #instPushTimer(IN := FALSE, PT := #tempHoldTime);
+                    #ioHmi.diHighSortedCount := #ioHmi.diHighSortedCount + 1;
+                    IF #statStopReq THEN
+                        #statStep := #STEP_IDLE;
+                        #statRunning := FALSE;
+                        #statStopReq := FALSE;
+                    ELSE
+                        #statStep := #STEP_FEED_DETECT;
+                    END_IF;
+                END_IF;
+
+            #STEP_PUSH_LOW:
+                #tempConvEntry := FALSE;
+                #tempConvExit := FALSE;
+                #tempLoadRoller := FALSE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := TRUE;
+                #statRunning := TRUE;
+
+                #instPushTimer(IN := TRUE, PT := #tempHoldTime);
+                IF #instPushTimer.Q THEN
+                    #instPushTimer(IN := FALSE, PT := #tempHoldTime);
+                    #ioHmi.diLowSortedCount := #ioHmi.diLowSortedCount + 1;
+                    IF #statStopReq THEN
+                        #statStep := #STEP_IDLE;
+                        #statRunning := FALSE;
+                        #statStopReq := FALSE;
+                    ELSE
+                        #statStep := #STEP_FEED_DETECT;
+                    END_IF;
+                END_IF;
+
+            #STEP_FAULT:
+                #tempConvEntry := FALSE;
+                #tempConvExit := FALSE;
+                #tempLoadRoller := FALSE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := FALSE;
+                #statRunning := FALSE;
+                #instStepTimer(IN := FALSE, PT := #tempTimeout);
+                #instPushTimer(IN := FALSE, PT := #tempHoldTime);
+
+            ELSE:
+                #statStep := #STEP_IDLE;
+                #tempConvEntry := FALSE;
+                #tempConvExit := FALSE;
+                #tempLoadRoller := FALSE;
+                #tempPushHigh := FALSE;
+                #tempPushLow := FALSE;
+                #statRunning := FALSE;
+        END_CASE;
+    END_IF;
+
+    // 急停块尾硬切断：保证急停时全部执行器输出强制清零
+    IF NOT #eStopOk THEN
+        #tempConvEntry := FALSE;
+        #tempConvExit := FALSE;
+        #tempLoadRoller := FALSE;
+        #tempPushHigh := FALSE;
+        #tempPushLow := FALSE;
+    END_IF;
+
+    // 状态码解算
+    IF NOT #eStopOk THEN
+        #ioHmi.wStatus := #ERR_ESTOP;
+    ELSIF #statStep = #STEP_FAULT THEN
+        #ioHmi.wStatus := #ERR_TIMEOUT;
+    ELSIF #statRunning THEN
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSE
+        #ioHmi.wStatus := #STATUS_IDLE;
+    END_IF;
+
+    // 同步写回 ioHmi
+    #ioHmi.iCurrentStep := #statStep;
+    #ioHmi.bRunning := #statRunning;
+    #ioHmi.bFault := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #conveyorEntry := #tempConvEntry AND #eStopOk;
+    #conveyorExit := #tempConvExit AND #eStopOk;
+    #loadRoller := #tempLoadRoller AND #eStopOk;
+    #pusherHigh := #tempPushHigh AND #eStopOk;
+    #pusherLow := #tempPushLow AND #eStopOk;
+    #startLight := #statRunning AND #eStopOk;
+    #faultLight := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #error := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #status := #ioHmi.wStatus;
+END_FUNCTION_BLOCK

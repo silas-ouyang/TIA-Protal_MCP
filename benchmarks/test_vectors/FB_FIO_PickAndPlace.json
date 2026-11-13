@@ -1,0 +1,1640 @@
+{
+  "blockId": "B02",
+  "blockName": "FB_FIO_PickAndPlace",
+  "udtName": "UDT_HMI_FIO_PickAndPlace",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "startBtn": false,
+      "stopBtn": true,
+      "resetBtn": false,
+      "itemAtEntry": false,
+      "itemAtExit": false,
+      "itemDetected": false,
+      "movingX": false,
+      "movingZ": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bStartCmd": false,
+      "bStopCmd": false,
+      "bResetCmd": false,
+      "bManualMoveX": false,
+      "bManualMoveZ": false,
+      "bManualGrab": false,
+      "tAxisMoveTime": "T#600ms",
+      "tStepTimeout": "T#4s",
+      "iCurrentStep": 0,
+      "diPickedCount": 0,
+      "bRunning": false,
+      "bFault": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statStep": 0,
+      "statRunning": false,
+      "statStopReq": false,
+      "statStartOld": false,
+      "statResetOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_PowerOnInit",
+      "category": "POWER_ON_INIT",
+      "description": "上电初始状态：急停正常，处于待机 STEP_IDLE (0)，执行器全部断开，状态码 16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "PLC上电首周期，验证气缸与吸盘输出为安全状态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NormalFlow_CompletePickAndPlace",
+      "category": "NORMAL_FLOW",
+      "description": "正常工艺流程：完整 10 步两轴防撞吸放料顺控循环，累计计数 +1",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "启动系统：startBtn 上升沿触发，进入 STEP_FEED (10)，启动入口上料带",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 10,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 10,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "工件到达入口抓料位 (itemAtEntry=TRUE)，停传送带，进入 STEP_Z_DOWN_PICK (20)，Z轴下降 (moveZ=TRUE)",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 1000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": true,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 10,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 10,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴下降到位静止 (movingZ=FALSE)，进入 STEP_GRAB (30)，吸盘吸气 (grab=TRUE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 1610,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": true,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": true,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 30,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 30,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "真空建立确认工件吸住 (itemDetected=TRUE)，进入 STEP_Z_UP_PICK (40)，Z轴上升 (moveZ=FALSE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 2220,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": true,
+            "itemAtExit": false,
+            "itemDetected": true,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 30,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 30,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": false,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 40,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 40,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴上升至高位安全点 (movingZ=FALSE)，允许X轴动作，进入 STEP_X_FWD (50)，X轴伸出 (moveX=TRUE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 2830,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": true,
+            "movingX": true,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 40,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 40,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": true,
+            "moveZ": false,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 6,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "X轴平移到位放料上方 (movingX=FALSE)，进入 STEP_Z_DOWN_PLACE (60)，Z轴下降 (moveZ=TRUE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 3440,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": true,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": true,
+            "moveZ": true,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 60,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 60,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 7,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴下降到放料位静止 (movingZ=FALSE)，进入 STEP_RELEASE (70)，关闭真空 (grab=FALSE)，启动出口皮带",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 4050,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": true,
+            "itemDetected": true,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 60,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 60,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": true,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 70,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 70,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 8,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "工件释放脱落确认 (itemDetected=FALSE)，进入 STEP_Z_UP_PLACE (80)，Z轴上升 (moveZ=FALSE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 4660,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": true,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 70,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 70,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": true,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 80,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 80,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 9,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴上升安全到位 (movingZ=FALSE)，进入 STEP_X_HOME (90)，X轴缩回原位 (moveX=FALSE)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 5270,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": true,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 80,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 80,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 90,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 90,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 10,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "X轴回到原位 (movingX=FALSE)，累计计数+1，循环完成转入下一周期 STEP_FEED (10)",
+          "scanCycleOrDuration": "610ms",
+          "elapsedTimeMs": 5880,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 90,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 90,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor": true,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 10,
+            "diPickedCount": 1,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 10,
+            "diPickedCount": 1,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_EStopDuringMotion",
+      "category": "ESTOP_DURING_MOTION",
+      "description": "动作中急停：搬运过程中 (STEP_X_FWD 50) eStopOk 突降为 FALSE，全部气缸与真空硬切断并报 16#8402",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "X轴平移搬运中遭遇急停触发，执行器全部断电，进入 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 2800,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": true,
+            "movingX": true,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ResetWhileEStopActive",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时复位：急停中尝试复位必须被拒绝，直到 eStopOk=TRUE 且按复位才恢复待机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopOk=FALSE 时按下复位按钮，系统必须保持 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 3000,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "释放复位按钮 (resetBtn=FALSE, bResetCmd=FALSE) 释放上升沿锁存，仍处于急停故障 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 3100,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "急停旋出恢复 (eStopOk=TRUE)，再次按下复位按钮，系统成功复位转入 STEP_IDLE (0)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SensorConflictOrStuck_DropItem",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "工件意外脱落/传感器故障：在搬运步 STEP_X_FWD (50) 期间 itemDetected 丢失，立即跳入故障状态",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "平移搬运中真空掉件 (itemDetected 从 TRUE 变 FALSE)，触发掉件保护跳 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 2900,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": true,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 50,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ActionTimeout",
+      "category": "ACTION_TIMEOUT",
+      "description": "动作超时保护：Z轴气缸动作卡阻，超过 tStepTimeout (4s) 未到位，看门狗超时报 16#8401",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "在 STEP_Z_DOWN_PICK (20) 中 movingZ 持续为 TRUE 超过 4000ms，触发超时报警停机",
+          "scanCycleOrDuration": "4000ms",
+          "elapsedTimeMs": 4100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": true,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 20,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_ModeSwitchTransient",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：切换为手动模式，自动流程安全暂停，允许手动驱动气缸并测试防撞联锁",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切换为手动模式 (bManualMode=TRUE)，手动驱动 Z 轴下降 (bManualMoveZ=TRUE)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": true,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": true,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "释放手动控制，切回自动模式，气缸复位至安全位待机",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_CommandConflict",
+      "category": "COMMAND_CONFLICT",
+      "description": "两轴防碰撞互锁：当 Z 轴处于低位 (moveZ=TRUE 或 movingZ=TRUE) 时，严禁驱动 X 轴动作",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "手动模式下 Z 轴处于低位同时命令 X 轴移动 (bManualMoveX=TRUE)，防碰撞硬互锁阻断 moveX 输出",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": true
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": true,
+            "bManualMoveZ": true,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": true,
+            "bManualMoveZ": true,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CaseElseIllegalState",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "非法状态号捕获：注入 statStep = 999，CASE ELSE 捕获并强制退回安全停机或待机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "注入非法步号 999，防卡死机制生效，全部气缸断电并安全复原",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "itemAtEntry": false,
+            "itemAtExit": false,
+            "itemDetected": false,
+            "movingX": false,
+            "movingZ": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 999,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualMoveX": false,
+            "bManualMoveZ": false,
+            "bManualGrab": false,
+            "tAxisMoveTime": "T#600ms",
+            "tStepTimeout": "T#4s",
+            "iCurrentStep": 999,
+            "diPickedCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diPickedCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    }
+  ]
+}

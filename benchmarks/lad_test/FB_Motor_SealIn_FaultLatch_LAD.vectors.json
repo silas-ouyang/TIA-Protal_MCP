@@ -1,0 +1,352 @@
+{
+  "blockId": "LAD02",
+  "blockName": "FB_Motor_SealIn_FaultLatch_LAD",
+  "initialState": {
+    "inputs": {
+      "startBtn": false,
+      "stopBtn": false,
+      "overloadNC": true,
+      "eStopNC": true,
+      "interlockOk": true,
+      "resetFault": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_IDLE_READY",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_START_SEAL_IN_AND_STOP",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": true,
+            "faultLatched": false,
+            "ready": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": true,
+            "faultLatched": false,
+            "ready": true
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": true,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": false
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_OVERLOAD_LATCH_ANTI_RESTART",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": true,
+            "faultLatched": false,
+            "ready": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": false,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": true,
+            "ready": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": true,
+            "ready": false
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": true
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": true,
+            "ready": false
+          }
+        },
+        {
+          "step": 5,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": true
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ESTOP_FAULT_RESET_GUARD",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": true,
+            "faultLatched": false,
+            "ready": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": false,
+            "interlockOk": true,
+            "resetFault": true
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": true,
+            "ready": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": true,
+            "ready": false
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": true
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_INTERLOCK_DROPOUT_NO_LATCH",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": true,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": true,
+            "faultLatched": false,
+            "ready": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": false,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ISOLATED_CLEAN_INSTANCE",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "startBtn": false,
+            "stopBtn": false,
+            "overloadNC": true,
+            "eStopNC": true,
+            "interlockOk": true,
+            "resetFault": false
+          },
+          "expectedOutputs": {
+            "motorCoil": false,
+            "faultLatched": false,
+            "ready": true
+          }
+        }
+      ]
+    }
+  ]
+}

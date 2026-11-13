@@ -10,15 +10,15 @@ V20 和 V21 不是"版本号差 1"，是**两套 API 形态**。很多在 V21 �
 
 每条规则后面标了来源：`[A]` = tia-portal-mcp v1.4.1 的服务端指令，`[B]` = TIA_MCP_Delivery v2.7.8 的 skill/能力矩阵，`[实测]` = 本机验证。
 
-## 1. 本机事实（先记住，省很多试错）
+## 1. 环境与程序集事实（先记住，省很多试错）
 
 | 项 | 值 | 来源 |
 |---|---|---|
-| 安装根 | `D:\TIA_Portal_v20\Portal V20`（**非标准路径**，不在 `C:\Program Files\Siemens`） | 实测 |
-| Openness 目录 | `D:\TIA_Portal_v20\Portal V20\PublicAPI\V20`（**没有 `net48` 子目录**，DLL 直接在这层） | 实测 |
-| 程序集 | `Siemens.Engineering.dll` + `Siemens.Engineering.Hmi.dll`，版本 `2000.0.9501.1` | 实测 |
+| 安装根 | TIA V20 安装可能位于自定义盘符/目录（不一定在 `C:\Program Files\Siemens`），运行先看 `d_doctor` / 注册表探测结果 | 实测 |
+| Openness 目录 | `<TIA_V20_ROOT>\PublicAPI\V20`（**没有 `net48` 子目录**，DLL 直接在这层） | 实测 |
+| 程序集 | `Siemens.Engineering.dll` + `Siemens.Engineering.Hmi.dll`（V20 程序集版本 `2000.0.x`） | 实测 |
 | 程序集形态 | **单体 DLL**，没有 V21 的 `Base` / `Step7` / `WinCCUnified` 拆分 | [B] + 实测 |
-| 同机其它版本 | V16 在 `E:\tia16\1\Portal V16` | 实测 |
+| 多版本共存 | 若同时装有 V16/V20 等多版本，可用 `d_versions` 查看并按 `.apXX` 后缀自动路由 | 实测 |
 
 **推论**：任何按 V21 拆分程序集写的工具（比如 Czarnak 那套要求 `Siemens.Engineering.Base.dll`）在 V20 上**加载即失败**，不是配置问题。要用 V20，只能选按单体 DLL 编译的实现（B 的 `runtime/v20`，或 A）。
 
@@ -77,7 +77,7 @@ V20 工程在网关 D 上**默认路由到 B**，所以不能把 A 的策略当�
 **`.s7dcl` 的四条硬约束**（全部来自 B 源码，违反任一条都会失败或静默出错）：
 
 1. **`S7_NetworkTitle` / `S7_BlockTitle` 绝对不能直接内联中文**——会导致**静默导入 0 个块**（不报错，但什么都没进去）。标题里的中文必须放进 `.s7res` 的 `MLC_*` 引用。`[B: McpGuides.cs:57]`
-2. **`.s7res` 是 YAML 格式，不是 XML**。每个多语言条目必须包含 `en-US` 词条，否则 B 的 `S7ResScanner.GetMissingEnUsIds` 会报 `missingEnUsIds` 警告。`[B: McpServer.Documents.cs:250,535]`
+2. **含多语言词条的 `.s7res` 是 YAML 格式，不是 XML**（`MultiLingualTexts:` 列表）。每个多语言条目必须包含 `en-US` 词条，否则 B 的 `S7ResScanner.GetMissingEnUsIds` 会报 `missingEnUsIds` 警告；仅当块没有任何多语言词条时，V20 导出的空占位 `.s7res` 才是 8 字符 `<root />`。`[B: McpServer.Documents.cs:250,535 / S7ResScanner.cs]`
 3. **每个 NETWORK 前面必须紧跟一行 pragma**：`{ S7_Language := "LAD" }`（或 `"SCL"`），漏掉必报语法错误。`[B: McpGuides.cs:108]`
 4. SCL 正文里的 `//` 中文注释**可以**内联，不受第 1 条限制。
 
@@ -89,11 +89,12 @@ UTF-8 带 BOM 的 `<块名>.s7res`，否则 `ImportFromDocuments` 必败。网�
 `fileNameWithoutExtension` 去工程里反查原块号，名字被改掉就会丢原编号并被重新编号。所以网关 D 的
 `slug()` 只过滤连续点号和首尾点，**保留块名中间的单点**。
 
-另外两条来自 B 源码的硬事实：
+另外几条来自 B 源码的硬事实：
 
 - `ImportPlcExternalSource` 对**已存在的同名外部源**会报 `"The name is not unique"`——必须先 `DeletePlcExternalSource`。
 - `GenerateBlocksFromExternalSource` **不会覆盖工程中已有的同名块**（只更新时间戳，代码仍是旧的），
-  更新已有块要走 `ImportFromDocuments(importOption: 'Override')` 或先删块。
+  更新已有块要走 `ImportFromDocuments(importOption: 'Override')` 或先删块。走网关 `d_write_block(format:'scl', confirm:true)` 时，网关已内置 **Phase 0 预检 → 删前 XML 备份 → 删除重建 → `CompileAndDiagnosePlc` 编译门 → 失败自动 XML 回滚**（连回滚都失败会写 `pending_recovery.json` 并阻断 `d_save`/`d_finish`）。另外正向 `.scl` 覆盖后手动固定块号（`AutoNumber=false`）在默认 `lite` 下会重置为自动编号（而触发 XML 回滚可原生保留原块号）。
+- **`ExportAsDocuments`（`.s7dcl`）在 V20 下不支持 SCL 块**，调用会抛 `EngineeringNotSupportedException`（`Portal.Blocks.cs:1027-1030`）；且原生 `ExportAsDocuments` 不传 `groupPath` 时只查根目录不递归子组（`Portal.Blocks.cs:983-1025`）。**原生 `ExportBlock`（`xml`）内部调用 `GetBlock` 同样不递归子组**（`Portal.Blocks.cs:112-120,313`）：不带 `/` 或 `group` 时只查根目录。走网关 `d_read_block(format:'s7dcl')` 会自动先用 `GetBlocksWithHierarchy` 补齐子组，遇到 V20 SCL 时默认 fail-closed 报错引导改用 `format:'xml'`，或显式传 `fallback_to_xml:true` 透明回退 `ExportBlock(xml)`；子组块直接传 `format:'xml'` 时建议显式传入 `group`（或 `组路径/块名`）。
 
 ### 4.1 怎么零翻车拿到 `.s7dcl` / `.s7res` 模板
 
@@ -101,12 +102,12 @@ UTF-8 带 BOM 的 `<块名>.s7res`，否则 `ImportFromDocuments` 必败。网�
 
 1. **能不用 `.s7res` 就不用**。中文写在 SCL 正文或 RUNG 的 `//` 注释里，**不需要**多语言资源文件。
    只有块标题 / 网络标题要显示中文时才必须上 `.s7res`（`S7_BlockTitle` / `S7_NetworkTitle` 里不能内联中文）。
-2. **不需要多语言标题时，`.s7res` 直接给 `<root />` 就行**。
-   真机实测：V20 导出的无多语言词条的 `.s7res` 内容就是这 8 个字符（UTF-8 带 BOM），
+2. **没有任何多语言标题/词条时，空占位 `.s7res` 直接给 `<root />` 就行**（注意有词条时必须写成 YAML `MultiLingualTexts:` 结构）。
+   真机实测：V20 导出的无多语言词条的 `.s7res` 空占位内容就是这 8 个字符（UTF-8 带 BOM），
    传 `res_content: '<root />'` 就能通过 `ImportFromDocuments` 的校验。**这一步可以省掉"先导出抄模板"**。
 3. **需要多语言标题时，先导出抄模板**。`ExportAsDocuments` 导一个工程里现成的块（如 `Main`），
-   照抄它生成的 `.s7dcl` + `.s7res` 结构，**不要自己猜字段名**。
-   网关 D 上：`d_call({server:'b', tool:'ExportAsDocuments', arguments:{softwarePath, blockPath, exportPath}})`。
+   照抄它生成的 `.s7dcl` + `.s7res`（YAML `MultiLingualTexts:`）结构，**不要自己猜字段名**。
+   网关 D 上：`d_read_block({block, format:'s7dcl'})` 或 `d_call({server:'b', tool:'ExportAsDocuments', arguments:{softwarePath, blockPath, exportPath}})`。
 
 真机导出的 `.s7dcl` 骨架长这样（注意每个 NETWORK 前都有 `{ S7_Language := "LAD" }`）：
 
@@ -126,20 +127,19 @@ ORGANIZATION_BLOCK "Main"
 END_ORGANIZATION_BLOCK
 ```
 
-### 4.1.1 读块的限制：块调用读不出来
+### 4.1.1 读块的限制：块调用与 SCL `s7dcl`
 
-`DescribeBlockLogic`（网关 `d_read_block` 走的就是它）只渲染 **FlgNet 梯形图**，
-**不渲染 Call 指令**。如果某个网络里只有一句 `"实例DB"()` 或 `"FC名"()`，读回来会是：
+1. **`DescribeBlockLogic`（`d_read_block` 不传 `format` 的默认路径）**：
+   - 对 LAD 块只渲染 **FlgNet 梯形图**，**不渲染 Call 指令**。如果某个网络里只有一句 `"实例DB"()` 或 `"FC名"()`，读回来会是：
 
 ```
 ── 程序段 2  [LAD]
    (无 FlgNet / 不支持的语言)
 ```
 
-这不是块坏了，是它本来就只有调用。真机上 `Main` 就是这个情况。
-
-**绕法**：改用 `ExportAsDocuments` 导出 `.s7dcl` 看原文，或 `GetBlockInfo` 看块属性。
-真实工程里 OB1 常常只有一个 FB 调用，所以读 OB1 前先有心理准备。
+   这不是块坏了，是它本来就只有调用。真机上 `Main` 就是这个情况。此时改用 `d_read_block(block, format:'s7dcl')` 导出 `.s7dcl` 看原文，或 `GetBlockInfo` 看块属性。
+   - 对 SCL 块仅渲染代码正文而**不含块接口声明（`<Interface>`）**；读取完整 SCL 源必须用 `format:'xml'`。
+2. **V20 下读 SCL 块禁指望 `.s7dcl`**：V20 Openness `ExportAsDocuments` 不支持 SCL（抛 `EngineeringNotSupportedException`），请用 `d_read_block(block, format:'xml')`（或显式 `fallback_to_xml:true`）。真实工程里 OB1 常常只有一个 FB 调用，所以读 OB1 前先有心理准备。
 
 ### 4.2 写进分组：先编译，再移动
 
@@ -434,10 +434,20 @@ Contact("步6") · Contact("二号光电") · I_Contact("暂停") · PBox("沿_�
 
 ## 6. 在线与下载
 
-- **`target_interface` 在 V15–V20 填 PLC 的 IP**；V21 才填目标接口名。`[A]`
+- **`target_interface` 必须分上游**：
+  - **上游 A**：V15–V20 填 **PLC 的 IP**；V21 才填目标接口名（如 `PN/IE_1` / `1 X1`）。`[A]`
+  - **上游 B**：网关 `d_download` 固定将 `target_interface` 映射为 `DownloadToPlc` 的 `targetIpAddress`——因此 **V20 与 V21 一律填 PLC 的 IP**（如 `192.168.0.1`），传接口名会报找不到匹配 IP 路由。`[B]`
 - 调用 `go_online` 时若用户没指定连接方式，**让用户选仿真还是物理接口**；物理接口的网卡名必须由用户填。`[A]`
 - 工具返回 `needs_input` 时，先问用户再重试，不要猜。`[A]`
 - 下载是破坏性操作，参数（网卡类型、网卡名、目标接口）必须用户明确给出。
+
+### 6.1 PLCSIM Advanced V7.0、宿主网卡与 FW V4.0 约束 `[实测]`
+
+- **控制桥独立于网关 D**：网关 D 的 `d_*` 工具不托管 PLCSIM 实例生命周期；实例启停/网络模式/S7 DB 读取由独立 x64 桥接工具 `plcsim-adv-bridge.exe`（CLI 与 `--mcp` 13 工具，MCP 参数均为 kebab-case `string`，如 `network-mode`、`power-on`、`delete-storage`、`parse-summary`）负责。
+- **常驻进程持有约束**：短生命周期 CLI 仅通过后台管道守护在存在实例时维持 `SimulationRuntimeManager`；一旦无常驻持有者（`--mcp` 或 PLCSIM GUI）且实例清零，实例不持久化且 `NetworkMode` 自动回退为 `Softbus`。
+- **S7 端口 102 读数条件**：`s7-read-db` / `plcsim_read_db`（`Sharp7.dll`，`rack=0, slot=1`）必须满足 **`TCPIPSingleAdapter`**（非 `Softbus`）、目标 DB 为**非优化访问**（`S7_Optimized_Access := 'FALSE'`）、开启 `Put/Get` 且 IPv4 路由可达。
+- **宿主机网卡冲突与 UAC**：若本机已有其他网卡占用 `192.168.0.0/24` 且 `InterfaceMetric` 更低，TIA 默认 PLC IP `192.168.0.1` 会在 Layer-2 PN-DCP 发现后因 Windows TCP 路由走偏而失败（`检测到不兼容的设备`）。`Siemens PLCSIM Virtual Ethernet Adapter` 默认分配 APIPA `169.254.x.x/16`，使用 `netsh` 配静态冷门网段（如 `192.168.250.1/24`）必须使用**管理员权限终端**（标准用户受 UAC 限制会拒绝）。
+- **TIA V20 CPU 固件 V4.0 安全向导与白名单**：例如 `6ES7 513-1AM03-0AB0` 默认固件 `V4.0` 会默认启用「保护机密 PLC 组态数据」「仅支持安全 PG/PC 和 HMI 通信」及 UMAC 访问控制，仅调用 `SetPutGetAccess(true)` 不足以放行无鉴权访问。Windows Openness 注册表白名单仅放行 `TiaMcpServer.exe` 与 `tia-portal-mcp.exe`（未注册的自编译 `.exe` 调用 `new TiaPortal()` 会挂死）。
 
 ## 7. WinCC Unified 在 V20 的边界（差异最大的一块）
 
@@ -457,30 +467,33 @@ Contact("步6") · Contact("二号光电") · I_Contact("暂停") · PBox("沿_�
 
 ## 8. 版本共存
 
-本机 V16 + V20 同时装：
+多版本共存时（例如同时装有 V16 + V20）：
 
 - **必须显式指定版本**，不要让工具"自动猜" `[A]`
 - A 的 `connect_tia(version=...)` 要显式传 `V20`
 - B 的运行时按版本分目录：`runtime/v20` / `runtime/v21`，启动参数 `--tia-major-version 20`
 - 多版本同时运行时，新建工程前先用 `list_running_tia_portals` 确认当前启动的是哪个版本 `[A]`
 
-## 9. 排错顺序（照这个走，别乱试）
+## 9. 排错与基准验证顺序（照这个走，别乱试）
 
+```text
+1. d_doctor (默认 fast 零拉起，deep:true 才实起 A)  → 锁 / pending-recovery / port-8000 / 注册表版本 / Openness 组
+2. d_versions                                     → 零进程探测已装 TIA 版本与推荐路由
+3. d_connect(version="V20", project_file_path=..) → 连上（支持 OpenProject 前 B 基础设施失败保锁回落 A）
+4. 首次连接弹 Openness 授权窗 → 让用户人工点"是，全部接受"，绝不代点
+5. d_tree 读工程树，拿真实路径和块名
+6. 干活 → d_finish（离线 → 编译 0 错 → 无 pending_recovery 时保存）
 ```
-1. check_openness_prerequisites / Bootstrap   → 环境对不对、Openness 组在不在
-2. detect_tia_installations / d_versions       → 装的到底是不是 V20、Update 几
-3. list_running_tia_portals                    → TIA 开没开、开的是哪个版本
-4. connect_tia(version="V20") / Connect        → 连上
-5. 首次连接弹 Openness 授权窗 → 让用户人工点"是，全部接受"，绝不代点
-6. 读工程树，拿真实路径和块名
-7. 干活 → 编译 0 错 → 保存
-```
+
+> 若在 `D:\TIA_MCP\benchmarks\` 下验证 V20 黄金块或生成 Route 1 PLCSIM 自驱 Harness，可使用零依赖工具链 `benchmarks/runner/`（`validate-vectors.js` / `offline-eval.js` / `generate-plc-harness.js`，内置 UTF-8 BOM、避让 `"Main"` OB、`VAR_OUTPUT` 禁回读、SE002/AL001/PC008 等 V20 静态反模式检查 `lintSclSource`）。
 
 ## 10. 不要做的事
 
 - ❌ 不要手写 LAD 的 SimaticML FlgNet XML（V20/V21 都一样，UId 进制与连线极易报错）
+- ❌ 不要对 V20 SCL 块强行期望 `.s7dcl` 导出成功（必抛 `EngineeringNotSupportedException`，请用 `format:'xml'` 或 `fallback_to_xml:true`）
+- ❌ 不要忽略 `pending_recovery.json` 告警就强行 `allow_dirty_save:true` 覆盖磁盘工程（先看 `manualRecovery` 抢救 XML 备份）
 - ❌ 不要在 `.s7dcl` 含标题/中文注释时漏掉配对的 `.s7res`
-- ❌ 不要指望 `GenerateBlocksFromExternalSource` 覆盖已有块（它不覆盖，要 Override 或先删块）
+- ❌ 不要指望 `GenerateBlocksFromExternalSource` 覆盖已有块（它不覆盖，要 Override 或走 `d_write_block` 事务删后重建）
 - ❌ 不要对已存在设备改 IP（rc=20，只能随 AML 导入）
 - ❌ 不要硬编码 HSC 属性名，不要反复猜不可达的属性
 - ❌ 不要自动点 UAC / Openness 授权窗

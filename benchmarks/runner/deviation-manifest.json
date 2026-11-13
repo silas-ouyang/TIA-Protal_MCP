@@ -1,0 +1,765 @@
+{
+  "$schemaVersion": "1.0.0",
+  "description": "P2-2 15 个黄金基准块测试向量（benchmarks/test_vectors/*.json）与黄金源码（benchmarks/golden_library/scl/*.scl）实证偏差清单、块执行策略及 Route 1/Route 3 处理指令。",
+  "tolerances": {
+    "realAbs": 1e-5,
+    "realRel": 1e-5,
+    "s7LiveReadRoundDigits": 6,
+    "defaultPlcScanCycleMs": 10
+  },
+  "blockPolicies": {
+    "FC_AnalogScaleAlarm": {
+      "blockId": "A01",
+      "blockType": "FC",
+      "timingMode": "combinational",
+      "statePersistence": "stateless",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [],
+      "hasArray": false
+    },
+    "FB_LowPassFilter": {
+      "blockId": "A02",
+      "blockType": "FB",
+      "timingMode": "combinational",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [],
+      "hasArray": false
+    },
+    "FB_CylinderCtrl": {
+      "blockId": "A03",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [
+        { "name": "instExtendTimeout", "defaultPtMs": 3000 },
+        { "name": "instRetractTimeout", "defaultPtMs": 3000 },
+        { "name": "instSensorBothTon", "defaultPtMs": 200 }
+      ],
+      "hasArray": false
+    },
+    "FB_MotorRevCtrl": {
+      "blockId": "A04",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [
+        { "name": "instDeadbandTimer", "defaultPtMs": 1000 },
+        { "name": "instFbkTimer", "defaultPtMs": 2000 }
+      ],
+      "hasArray": false
+    },
+    "FB_RingFifo": {
+      "blockId": "A05",
+      "blockType": "FB",
+      "timingMode": "combinational",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["enqueue", "dequeue", "ioHmi.bManualEnqueue", "ioHmi.bManualDequeue"],
+      "resetEdgePins": [],
+      "tonTimers": [],
+      "hasArray": true
+    },
+    "FC_ButtonDebounceToggle": {
+      "blockId": "A06",
+      "blockType": "FC",
+      "timingMode": "scan_cycle_param",
+      "statePersistence": "inout_hmi",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [],
+      "hasArray": false
+    },
+    "FB_ModbusPoller": {
+      "blockId": "A07",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [
+        { "name": "instTimeoutTimer", "defaultPtMs": 1000 },
+        { "name": "instGapTimer", "defaultPtMs": 50 }
+      ],
+      "hasArray": false
+    },
+    "FB_DualEStopInterlock": {
+      "blockId": "A08",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["resetButton", "ioHmi.bHmiResetCmd"],
+      "resetEdgePins": ["resetButton"],
+      "tonTimers": [
+        { "name": "instDiscTimer", "defaultPtMs": 200 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_SortingByHeight": {
+      "blockId": "B01",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["startBtn", "resetBtn"],
+      "resetEdgePins": ["resetBtn"],
+      "tonTimers": [
+        { "name": "instStepTimer", "defaultPtMs": 8000 },
+        { "name": "instPushTimer", "defaultPtMs": 800 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_PickAndPlace": {
+      "blockId": "B02",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["startBtn", "resetBtn"],
+      "resetEdgePins": ["resetBtn"],
+      "tonTimers": [
+        { "name": "instActionTimer", "defaultPtMs": 600 },
+        { "name": "instWatchdog", "defaultPtMs": 4000 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_BufferConveyor": {
+      "blockId": "B03",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["startBtn", "resetBtn"],
+      "resetEdgePins": ["resetBtn"],
+      "tonTimers": [
+        { "name": "instJamTimer1", "defaultPtMs": 6000 },
+        { "name": "instJamTimer2", "defaultPtMs": 6000 },
+        { "name": "instJamTimer3", "defaultPtMs": 6000 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_Turntable": {
+      "blockId": "B04",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["startBtn", "resetBtn"],
+      "resetEdgePins": ["resetBtn"],
+      "tonTimers": [
+        { "name": "instStepWatchdog", "defaultPtMs": 5000 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_AutomatedWarehouse": {
+      "blockId": "B05",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["execute"],
+      "resetEdgePins": [],
+      "tonTimers": [
+        { "name": "instSettleTimer", "defaultPtMs": 800 },
+        { "name": "instMoveWatchdog", "defaultPtMs": 10000 }
+      ],
+      "hasArray": false
+    },
+    "FB_FIO_TankLevelPID": {
+      "blockId": "B06",
+      "blockType": "FB",
+      "timingMode": "dt_sec_param",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": [],
+      "resetEdgePins": [],
+      "tonTimers": [],
+      "hasArray": false
+    },
+    "FB_FIO_Assembler": {
+      "blockId": "B07",
+      "blockType": "FB",
+      "timingMode": "ton_time",
+      "statePersistence": "fb_instance",
+      "defaultScanMs": 10,
+      "caseIsolation": "per_case_reset",
+      "edgeInputs": ["startBtn", "resetBtn"],
+      "resetEdgePins": ["resetBtn"],
+      "tonTimers": [
+        { "name": "instDelayTimer", "defaultPtMs": 500 },
+        { "name": "instWatchdog", "defaultPtMs": 6000 }
+      ],
+      "hasArray": false
+    }
+  },
+  "deviations": [
+    {
+      "id": "DEV-A02-TC02-PREINIT-STATE",
+      "blockName": "FB_LowPassFilter",
+      "caseId": "TC02_NORMAL_FLOW",
+      "step": null,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statInitialized", "statPrevOut"],
+      "sclEvidence": "FB_LowPassFilter.scl:23-24,86-102",
+      "reason": "TC02 假设滤波前已处于稳态初值 50.0 (statInitialized=true, statPrevOut=50.0)，但仅能通过先调用一次 rawValue=50.0 (或私有状态初始化) 建立。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statInitialized": true, "statPrevOut": 50.0 },
+      "plcHarnessAction": "run_prefix_sequence",
+      "prefixSteps": [
+        { "inputs": { "enable": true, "rawValue": 50.0, "alpha": 0.2, "reset": true }, "scans": 1 }
+      ]
+    },
+    {
+      "id": "DEV-A02-TC05-PREINIT-STATE",
+      "blockName": "FB_LowPassFilter",
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statInitialized", "statPrevOut"],
+      "sclEvidence": "FB_LowPassFilter.scl:23-24,86-102",
+      "reason": "速率限幅测试假设前周期输出 statPrevOut=50.0 且 statInitialized=true。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statInitialized": true, "statPrevOut": 50.0 },
+      "plcHarnessAction": "run_prefix_sequence",
+      "prefixSteps": [
+        { "inputs": { "enable": true, "rawValue": 50.0, "alpha": 0.5, "reset": true }, "scans": 1 }
+      ]
+    },
+    {
+      "id": "DEV-A02-TC06-PREINIT-STATE",
+      "blockName": "FB_LowPassFilter",
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statInitialized", "statPrevOut"],
+      "sclEvidence": "FB_LowPassFilter.scl:23-24,86-102",
+      "reason": "大阶跃滤波测试假设前周期输出 statPrevOut=100.0 且 statInitialized=true。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statInitialized": true, "statPrevOut": 100.0 },
+      "plcHarnessAction": "run_prefix_sequence",
+      "prefixSteps": [
+        { "inputs": { "enable": true, "rawValue": 100.0, "alpha": 0.5, "reset": true }, "scans": 1 }
+      ]
+    },
+    {
+      "id": "DEV-A05-TC06-FULL-QUEUE-STATE",
+      "blockName": "FB_RingFifo",
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statCount", "statBuffer"],
+      "sclEvidence": "FB_RingFifo.scl:25-28,99-101",
+      "reason": "满队溢出测试假设内部队列已入队 32 个元素且队首为 100，但 ioHmi 仅映射只读预览字段。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statCount": 32, "statHead": 0, "statTail": 0, "statBuffer": [100] },
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-A05-TC08-NONEMPTY-STATE",
+      "blockName": "FB_RingFifo",
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statCount", "statBuffer"],
+      "sclEvidence": "FB_RingFifo.scl:25-28,112-123",
+      "reason": "并发入出队测试假设队列中预先存有 1 个元素 777。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statCount": 1, "statHead": 1, "statTail": 0, "statBuffer": [777] },
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-A07-TC02-S1-SCAN-LATENCY",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC02_NORMAL_FLOW",
+      "step": 1,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration", "expectedOutputs.mbReq"],
+      "sclEvidence": "FB_ModbusPoller.scl:117-129",
+      "reason": "10ms(1拍) 仅完成 STATE_IDLE->STATE_SEND_REQ 状态跃迁，mbReq=TRUE 在第 2 拍进入 STATE_SEND_REQ 时才输出。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 2,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-A07-TC02-S2-SCAN-ONLY",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC02_NORMAL_FLOW",
+      "step": 2,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration"],
+      "sclEvidence": "FB_ModbusPoller.scl:136-140,163-166",
+      "reason": "step2 reqDone=TRUE 仅需 2 拍完成 WAIT_RESP->GAP_WAIT，防止实机 ton_wait(40ms) 接近 50ms 时因定时器抖动提前触发 step3 的单拍 mbReq。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 2,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-A07-TC02-S3-SCAN-LATENCY",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC02_NORMAL_FLOW",
+      "step": 3,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration", "expectedOutputs.mbReq"],
+      "sclEvidence": "FB_ModbusPoller.scl:163-177",
+      "reason": "step2 第2拍已累计 instGapTimer 10ms，step3 执行至第4拍 (40ms) 退出 STATE_GAP_WAIT 进入 STATE_SEND_REQ，第5拍 (50ms) 即输出 mbReq=TRUE（而第6拍会走入 WAIT_RESP）；实机 TON 等待窗内需在全断言匹配瞬间停表校验该单拍脉冲。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 5,
+      "overrideScanDtMs": 10,
+      "stepOverrides": {
+        "3": {
+          "stopWaitOnMatch": true
+        }
+      },
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-A07-TC02-S4-GAP-DURATION",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC02_NORMAL_FLOW",
+      "step": 4,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration"],
+      "sclEvidence": "FB_ModbusPoller.scl:136-140,165-172",
+      "reason": "step4 需等待 T#50ms STATE_GAP_WAIT (共6拍=60ms) 于第6拍短暂置 STATUS_FINISHED(16#0000) 及 statStationIdx=1，第7拍进入 SEND_REQ 即覆写为 16#7002；实机 TON 等待窗需在全断言匹配瞬间停表校验该单拍态。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 6,
+      "overrideScanDtMs": 10,
+      "stepOverrides": {
+        "4": {
+          "stopWaitOnMatch": true
+        }
+      },
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-A07-TC06-RETRY3-STATE",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statState", "statRetryCnt"],
+      "sclEvidence": "FB_ModbusPoller.scl:131-161",
+      "reason": "描述写明第 3 次重试再次超时 1050ms，即假设 statState=20(WAIT_RESP)、statStationIdx=1、statRetryCnt=3；额外多跑 1 拍推进到 STATE_RETRY 判定掉线。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statState": 20, "statStationIdx": 1, "statRetryCnt": 3 },
+      "overrideScanCount": 102,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-A07-TC08-STATION2-STATE",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statState", "statStationIdx"],
+      "sclEvidence": "FB_ModbusPoller.scl:26-27,134-156,197",
+      "reason": "前置引导站 1 完成后进入从站 2 WAIT_RESP (statState=20, statStationIdx=2)；SCL 已按故障优先处理 reqDone/reqError 并发。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statState": 20, "statStationIdx": 2, "statRetryCnt": 0 },
+      "prefixSteps": [
+        {
+          "scans": 2,
+          "inputs": { "enable": true, "reqDone": false, "reqBusy": false, "reqError": false, "reqStatus": "16#0000", "reset": false },
+          "ioHmi_in": { "bEnablePoll": true, "bResetStats": false, "iMaxStationCount": 2, "iMaxRetryCount": 3, "tReplyTimeout": "T#1s", "tInterFrameDelay": "T#10ms" }
+        },
+        {
+          "scans": 1,
+          "inputs": { "enable": true, "reqDone": true, "reqBusy": false, "reqError": false, "reqStatus": "16#0000", "reset": false },
+          "ioHmi_in": { "bEnablePoll": true, "bResetStats": false, "iMaxStationCount": 2, "iMaxRetryCount": 3, "tReplyTimeout": "T#1s", "tInterFrameDelay": "T#10ms" }
+        },
+        {
+          "mode": "ton_wait",
+          "waitMs": 30,
+          "minScans": 3,
+          "inputs": { "enable": true, "reqDone": false, "reqBusy": false, "reqError": false, "reqStatus": "16#0000", "reset": false },
+          "ioHmi_in": { "bEnablePoll": true, "bResetStats": false, "iMaxStationCount": 2, "iMaxRetryCount": 3, "tReplyTimeout": "T#1s", "tInterFrameDelay": "T#10ms" }
+        }
+      ],
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-A07-TC09-SCAN-LATENCY",
+      "blockName": "FB_ModbusPoller",
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statState", "statStationIdx", "statError"],
+      "sclEvidence": "FB_ModbusPoller.scl:90-101,119-133",
+      "reason": "白盒注入非法状态与前序故障 (statState=999, statStationIdx=2, statError=TRUE) 验证 reset 复位恢复；真机无法从公开引脚注入 statState=999。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statState": 999, "statStationIdx": 2, "statError": true },
+      "plcHarnessAction": "skip_untestable_private_state"
+    },
+    {
+      "id": "DEV-A08-TC06-DISCREPANCY-STATE",
+      "blockName": "FB_DualEStopInterlock",
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statDiscrepancyFault", "statWaitBothZero"],
+      "sclEvidence": "FB_DualEStopInterlock.scl:27-28,78-108",
+      "reason": "未双断开恢复测试需预先锁存 statDiscrepancyFault=true 与 statWaitBothZero=true。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statSafetyLatched": false, "statDiscrepancyFault": true, "statWaitBothZero": true },
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-A08-TC09-RESET-STUCK-TRUE",
+      "blockName": "FB_DualEStopInterlock",
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statResetOld"],
+      "sclEvidence": "FB_DualEStopInterlock.scl:92-94,136",
+      "reason": "预置 statResetOld=true 验证上电防自启动 (16#7001)，待复位态 error 已修正为 FALSE。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statSafetyLatched": false, "statResetOld": true },
+      "prefixSteps": [
+        {
+          "scans": 1,
+          "inputs": { "eStopCh1": false, "eStopCh2": false, "safetyGateOk": true, "feedbackLoopOk": true, "resetButton": true }
+        }
+      ],
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B01-TC05-PRIVATE-STEP10",
+      "blockName": "FB_FIO_SortingByHeight",
+      "caseId": "TC05_SensorConflictOrStuck",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_SortingByHeight.scl:136,155,165-174,282",
+      "reason": "ioHmi_in.iCurrentStep 只写不读，需通过 prefixSteps (或 privateInit) 将 statStep 推进至 10 (STEP_FEED_DETECT)。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 10, "statRunning": true },
+      "prefixSteps": [
+        {
+          "scans": 1,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": true,
+            "resetBtn": false,
+            "palletSensor": false,
+            "lowSensor": false,
+            "highSensor": false,
+            "loadedSensor": false,
+            "atHighExit": false,
+            "atLowExit": false
+          }
+        }
+      ],
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B01-TC06-PRIVATE-STEP20",
+      "blockName": "FB_FIO_SortingByHeight",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_SortingByHeight.scl:136,176-188,282",
+      "reason": "向量通过 ioHmi_in.iCurrentStep=20 启动 8000ms 超时用例；应先跑入 STEP_WAIT_EXIT(20)，并在超时后多 1 拍 (8010ms) 更新输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 20, "statRunning": true, "statPartType": 2 },
+      "overrideScanCount": 801,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B01-TC08-STOP-START-SAME-SCAN",
+      "blockName": "FB_FIO_SortingByHeight",
+      "caseId": "TC08_CommandConflict",
+      "step": 1,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration", "expectedHmi_out.iCurrentStep"],
+      "sclEvidence": "FB_FIO_SortingByHeight.scl:109-111,146-165",
+      "reason": "首拍 STEP_IDLE 清除 statStopReq 进入 STEP_FEED_DETECT(10)；第2拍 stopBtn=FALSE 置停机请求回 STEP_IDLE 但仍跑了 FEED_DETECT 上部输出；第3拍稳定在 STEP_IDLE(0) 且全部输送线为 FALSE。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 3,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-B01-TC09-VACUOUS-IDLE-ELSE",
+      "blockName": "FB_FIO_SortingByHeight",
+      "caseId": "TC09_CaseElseIllegalState",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "info",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_SortingByHeight.scl:136,250-258,282",
+      "reason": "公开接口无法注入私有 statStep=999，黑盒上因初值即 0 而空过(vacuous pass)；白盒覆盖 CASE ELSE 需私有变量注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 999, "statRunning": true },
+      "plcHarnessAction": "skip_untestable_private_state"
+    },
+    {
+      "id": "DEV-B02-TC05-PRIVATE-STEP50",
+      "blockName": "FB_FIO_PickAndPlace",
+      "caseId": "TC05_SensorConflictOrStuck_DropItem",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_PickAndPlace.scl:236-246,393",
+      "reason": "掉件保护测试用例通过 ioHmi_in.iCurrentStep=50 注入步号，需前序跑入 STEP_X_FWD(50) 或私有态注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 50, "statRunning": true },
+      "overrideScanCount": 2,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B02-TC06-PRIVATE-STEP20",
+      "blockName": "FB_FIO_PickAndPlace",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_PickAndPlace.scl:171-185,393",
+      "reason": "看门狗超时用例通过 ioHmi_in.iCurrentStep=20 注入步号；需前序跑入步 20 且 4000ms 超时后多 1 拍刷新输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 20, "statRunning": true },
+      "overrideScanCount": 401,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B02-TC09-VACUOUS-IDLE-ELSE",
+      "blockName": "FB_FIO_PickAndPlace",
+      "caseId": "TC09_CaseElseIllegalState",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "info",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_PickAndPlace.scl:361-369,393",
+      "reason": "公开接口无法注入私有 statStep=999，白盒 ELSE 覆盖需私有状态注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 999, "statRunning": true },
+      "plcHarnessAction": "skip_untestable_private_state"
+    },
+    {
+      "id": "DEV-B03-TC05-PRIVATE-RUNNING",
+      "blockName": "FB_FIO_BufferConveyor",
+      "caseId": "TC05_SensorConflictOrStuck",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statRunning"],
+      "sclEvidence": "FB_FIO_BufferConveyor.scl:32,126-156",
+      "reason": "卡料超时测试未拉 startBtn 上升沿，直接以 wStatus=16#0000 预设 statRunning=TRUE，且超时后需多 1 拍刷新输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statRunning": true, "statJamError": false },
+      "overrideScanCount": 601,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B03-TC06-PRIVATE-RUNNING",
+      "blockName": "FB_FIO_BufferConveyor",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "CASE_DEPENDS_ON_PRIVATE_STATE",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["statRunning"],
+      "sclEvidence": "FB_FIO_BufferConveyor.scl:32,126-156",
+      "reason": "Z1 卡料超时测试预设 statRunning=TRUE，且满 6000ms 后需多 1 拍刷新错误输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statRunning": true, "statJamError": false },
+      "overrideScanCount": 601,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B04-TC06-PRIVATE-STEP40",
+      "blockName": "FB_FIO_Turntable",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_Turntable.scl:214-230,350",
+      "reason": "超时用例通过 ioHmi_in.iCurrentStep=40 预设在 STEP_ROTATE_90(40)，应从前序流程步进或私有注入且 5000ms 后多 1 拍。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 40, "statRunning": true },
+      "overrideScanCount": 501,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B04-TC09-VACUOUS-IDLE-ELSE",
+      "blockName": "FB_FIO_Turntable",
+      "caseId": "TC09_CaseElseIllegalState",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "info",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_Turntable.scl:310-319,350",
+      "reason": "公开接口无法注入私有 statStep=999，白盒 ELSE 覆盖需私有状态注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 999, "statRunning": true },
+      "plcHarnessAction": "skip_untestable_private_state"
+    },
+    {
+      "id": "DEV-B05-TC06-PRIVATE-STEP10",
+      "blockName": "FB_FIO_AutomatedWarehouse",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_AutomatedWarehouse.scl:160-175,378",
+      "reason": "看门狗超时用例通过 ioHmi_in.iCurrentStep=10 预设 STEP_MOVE_SRC(10)，应先步入 10 且 10000ms 到期后多 1 拍刷新输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 10, "statCell": 12, "statIsRetrieve": false, "statStatus": "16#7002" },
+      "overrideScanCount": 1001,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B05-TC07-SCAN-LATENCY",
+      "blockName": "FB_FIO_AutomatedWarehouse",
+      "caseId": "TC07_ModeSwitchTransient",
+      "step": 1,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration", "expectedOutputs.targetPosition", "expectedHmi_out.iActiveTargetPos"],
+      "sclEvidence": "FB_FIO_AutomatedWarehouse.scl:153-167,366-368",
+      "reason": "bExecuteCmd 首拍从 IDLE 跳 STEP_MOVE_SRC(10)，需第 2 拍才把 targetPosition 更新为 30。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 2,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-B05-TC09-VACUOUS-IDLE-ELSE",
+      "blockName": "FB_FIO_AutomatedWarehouse",
+      "caseId": "TC09_CaseElseIllegalState",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "info",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_AutomatedWarehouse.scl:357-363,378",
+      "reason": "公开接口无法注入私有 statStep=999，白盒 ELSE 覆盖需私有状态注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 999 },
+      "plcHarnessAction": "skip_untestable_private_state"
+    },
+    {
+      "id": "DEV-B07-TC05-PRIVATE-STEP60",
+      "blockName": "FB_FIO_Assembler",
+      "caseId": "TC05_SensorConflictOrStuck",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_Assembler.scl:300-313,465",
+      "reason": "掉件故障用例通过 ioHmi_in.iCurrentStep=60 预设在 STEP_X_TO_BASE(60)，SCL 实际按私有 statStep 分支且掉件后多 1 拍刷新输出。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 60, "statRunning": true },
+      "overrideScanCount": 2,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B07-TC06-PRIVATE-STEP10",
+      "blockName": "FB_FIO_Assembler",
+      "caseId": "TC06_ActionTimeout",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_Assembler.scl:162-197,465",
+      "reason": "ioHmi_in.iCurrentStep=10 无法写入私有 statStep；补 1 拍公开 startBtn 上升沿进入 STEP_FEED_BOTH(10) 后，SCL 第 186-192 行调用 #instWatchdog 监控并在 6000ms 超时停机。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 10, "statRunning": true },
+      "prefixSteps": [
+        {
+          "scans": 1,
+          "inputs": { "eStopOk": true, "startBtn": true, "stopBtn": true, "resetBtn": false, "lidAtPlace": false, "baseAtPlace": false, "partLeaving": false, "lidClamped": false, "baseClamped": false, "posAtLimit": false, "movingX": false, "movingZ": false, "itemDetected": false },
+          "ioHmi_in": { "bManualMode": false, "bStartCmd": false, "bStopCmd": false, "bResetCmd": false, "tActionDelay": "T#500ms", "tStepTimeout": "T#6s" }
+        }
+      ],
+      "plcHarnessAction": "run_prefix_sequence"
+    },
+    {
+      "id": "DEV-B07-TC08-STOP-START-SAME-SCAN",
+      "blockName": "FB_FIO_Assembler",
+      "caseId": "TC08_CommandConflict",
+      "step": 1,
+      "kind": "MULTI_STEP_TIMING_APPROXIMATION",
+      "severity": "needs_harness_workaround",
+      "affectedFields": ["scanCycleOrDuration", "expectedHmi_out.iCurrentStep"],
+      "sclEvidence": "FB_FIO_Assembler.scl:118-120,162-183",
+      "reason": "首拍 STEP_IDLE 清除 statStopReq 进入 STEP_FEED_BOTH(10)；第2拍 stopBtn=FALSE 停机回 STEP_IDLE 但仍输出了 FEED_BOTH 输送带；第3拍稳定在 STEP_IDLE(0) 且 convLids/convBases=FALSE。",
+      "offlineEvalAction": "adapt_cycles",
+      "overrideScanCount": 3,
+      "overrideScanDtMs": 10,
+      "plcHarnessAction": "run_extra_settle_scan"
+    },
+    {
+      "id": "DEV-B07-TC09-VACUOUS-IDLE-ELSE",
+      "blockName": "FB_FIO_Assembler",
+      "caseId": "TC09_CaseElseIllegalState",
+      "step": 1,
+      "kind": "INTERNAL_STATE_NOT_READ_FROM_IOHMI",
+      "severity": "info",
+      "affectedFields": ["ioHmi_in.iCurrentStep", "statStep"],
+      "sclEvidence": "FB_FIO_Assembler.scl:427-438,465",
+      "reason": "公开接口无法注入私有 statStep=999，黑盒因初值即 0 而空过；白盒 ELSE 覆盖需私有变量注入。",
+      "offlineEvalAction": "inject_private_var",
+      "privateInit": { "statStep": 999, "statRunning": true },
+      "plcHarnessAction": "skip_untestable_private_state"
+    }
+  ]
+}

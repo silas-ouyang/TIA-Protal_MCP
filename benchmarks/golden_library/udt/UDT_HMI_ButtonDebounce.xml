@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <DocumentInfo>
+    <Created>2000-01-01T00:00:00.0000000Z</Created>
+    <ExportSetting>None</ExportSetting>
+    <InstalledProducts />
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="bHmiToggleCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI软按钮翻转触发</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bHmiForceOn" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI强制置位开机</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bHmiForceOff" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI强制复位关机</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tDebounceTime" Datatype="Time">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">防抖延时时间设定（默认 T#50ms）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="tElapsedMs" Datatype="DInt">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">内部保持：当前防抖累计毫秒数</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bDebouncedState" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：防抖后的稳定按钮状态</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bPrevDebounced" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">内部保持：上一周期防抖状态（用于取沿）</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bToggleOut" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：当前单键启停翻转锁存输出</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="wStatus" Datatype="Word">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态码：16#0000正常, 16#8401急停强制释放</MultiLanguageText>
+              </Comment>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_HMI_ButtonDebounce</Name>
+      <Namespace />
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

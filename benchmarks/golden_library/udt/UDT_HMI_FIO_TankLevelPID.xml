@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <DocumentInfo>
+    <Created>2000-01-01T00:00:00.0000000Z</Created>
+    <ExportSetting>None</ExportSetting>
+    <InstalledProducts />
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="None">
+            <Member Name="bManualMode" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">TRUE: 手动开度给定模式, FALSE: 自动PID闭环模式</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bResetCmd" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">HMI复位积分项与报警</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rSetpoint" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">液位设定值 SP (0.0..300.0 cm，默认 150.0)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rKp" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">比例增益 Kp (默认 2.0)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rKi" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">积分增益 Ki (1/s，默认 0.2)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rKd" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">微分增益 Kd (s，默认 0.05)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rDeadband" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">稳态误差死区 (cm，默认 0.5)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rManualFillValve" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">手动进水阀开度给定 (0.0..10.0V)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rManualDischargeValve" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">手动排水阀开度给定 (0.0..10.0V)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rCurrentLevel" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：当前实际液位 PV (0.0..300.0 cm)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rControlError" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：当前偏差 e = SP - PV</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rFillValveOut" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：进水比例阀输出电压 (0.0..10.0V)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="rDischargeValveOut" Datatype="Real">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：排水比例阀输出电压 (0.0..10.0V)</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bHighLevelAlarm" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：高液位溢流联锁报警</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="bLowLevelAlarm" Datatype="Bool">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态反馈：低液位干烧报警</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="wStatus" Datatype="Word">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+              <Comment>
+                <MultiLanguageText Lang="zh-CN">状态码：16#0000正常, 16#7000停机, 16#8200采样周期非法, 16#8401高液位溢流保护, 16#8402急停切断</MultiLanguageText>
+              </Comment>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>UDT_HMI_FIO_TankLevelPID</Name>
+      <Namespace />
+    </AttributeList>
+  </SW.Types.PlcStruct>
+</Document>

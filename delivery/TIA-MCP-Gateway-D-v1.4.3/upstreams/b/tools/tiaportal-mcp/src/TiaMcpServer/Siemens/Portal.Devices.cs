@@ -15,6 +15,7 @@ using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.Multiuser;
 using Siemens.Engineering.Safety;
+using Siemens.Engineering.Security;
 using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
 using Siemens.Engineering.SW.Types;
@@ -1083,6 +1084,12 @@ namespace TiaMcpServer.Siemens
                ?? TryGetEngineeringAttribute(node, "Address")?.ToString()
                ?? TryGetEngineeringAttribute(node, "IpAddress")?.ToString();
 
+        private static string? ReadNodeSubnetMask(object node)
+            => TryGetPropertyValue(node, "SubnetMask")?.ToString()
+               ?? TryGetPropertyValue(node, "NetMask")?.ToString()
+               ?? TryGetEngineeringAttribute(node, "SubnetMask")?.ToString()
+               ?? TryGetEngineeringAttribute(node, "NetMask")?.ToString();
+
         private JsonArray BuildDeviceNodesJson(Device device)
         {
             var arr = new JsonArray();
@@ -1095,6 +1102,7 @@ namespace TiaMcpServer.Siemens
                     {
                         ["nodeName"] = TryGetName(n.Node) ?? "<unnamed>",
                         ["address"] = ReadNodeAddress(n.Node) ?? string.Empty,
+                        ["subnetMask"] = ReadNodeSubnetMask(n.Node) ?? string.Empty,
                         ["nodeType"] = TryGetPropertyValue(n.Node, "NodeType")?.ToString() ?? string.Empty,
                         ["connectedSubnet"] = TryGetName(subnet) ?? subnet?.ToString() ?? string.Empty,
                         ["interfacePath"] = n.Path,
@@ -1136,6 +1144,280 @@ namespace TiaMcpServer.Siemens
                 ["nodeCount"] = nodes.Count,
                 ["nodes"] = nodes
             };
+        }
+
+        // Configure a device interface node's PROFINET IPv4 address / subnet mask / router directly via Openness.
+        public JsonObject SetDeviceIpAddress(
+            string devicePath,
+            string ipAddress,
+            string subnetMask = "",
+            string gateway = "",
+            int nodeIndex = 0,
+            string interfacePath = "")
+        {
+            var result = new JsonObject
+            {
+                ["ok"] = false,
+                ["device"] = devicePath,
+                ["requestedIpAddress"] = ipAddress ?? string.Empty,
+                ["requestedSubnetMask"] = subnetMask ?? string.Empty,
+                ["requestedGateway"] = gateway ?? string.Empty,
+                ["nodeIndex"] = nodeIndex,
+                ["interfacePath"] = interfacePath ?? string.Empty
+            };
+
+            if (IsProjectNull())
+            {
+                result["message"] = "No project open.";
+                return result;
+            }
+
+            var normalizedIp = EverydayEditSpec.NormalizeAndValidateIpv4(ipAddress, out var ipError, "ipAddress");
+            if (normalizedIp == null)
+            {
+                result["message"] = ipError;
+                return result;
+            }
+
+            string? normalizedMask = null;
+            if (!string.IsNullOrWhiteSpace(subnetMask))
+            {
+                normalizedMask = EverydayEditSpec.NormalizeAndValidateSubnetMask(subnetMask, out var maskError, "subnetMask");
+                if (normalizedMask == null)
+                {
+                    result["message"] = maskError;
+                    return result;
+                }
+            }
+
+            string? normalizedGateway = null;
+            if (!string.IsNullOrWhiteSpace(gateway))
+            {
+                normalizedGateway = EverydayEditSpec.NormalizeAndValidateIpv4(gateway, out var gwError, "gateway");
+                if (normalizedGateway == null)
+                {
+                    result["message"] = gwError;
+                    return result;
+                }
+            }
+
+            var device = GetDevice(devicePath);
+            if (device == null)
+            {
+                result["message"] = $"Device not found: '{devicePath}'.";
+                return result;
+            }
+            result["device"] = device.Name ?? devicePath;
+
+            var allNodes = new List<NetworkNodeInfo>();
+            foreach (var root in device.DeviceItems)
+                allNodes.AddRange(FindNetworkNodes(root));
+
+            var candidateNodes = FilterTargetNetworkNodes(allNodes, interfacePath);
+            if (candidateNodes.Count == 0)
+            {
+                result["nodes"] = BuildDeviceNodesJson(device);
+                result["message"] = string.IsNullOrWhiteSpace(interfacePath)
+                    ? $"No network nodes found on device '{device.Name ?? devicePath}'."
+                    : $"No network node on '{device.Name ?? devicePath}' matched interfacePath '{interfacePath}'.";
+                return result;
+            }
+
+            if (nodeIndex < 0 || nodeIndex >= candidateNodes.Count)
+            {
+                result["nodes"] = BuildDeviceNodesJson(device);
+                result["message"] = $"nodeIndex {nodeIndex} out of range (matched node count: {candidateNodes.Count}).";
+                return result;
+            }
+
+            var target = candidateNodes[nodeIndex];
+            var nodeObj = target.Node;
+            var ipAttr = ResolveNodeAttributeName(nodeObj, "Address", "IpAddress", "IPAddress") ?? "Address";
+            var maskAttr = ResolveNodeAttributeName(nodeObj, "SubnetMask", "NetMask") ?? "SubnetMask";
+            var useRouterAttr = ResolveNodeAttributeName(nodeObj, "UseRouter", "ActivateRouter");
+            var routerAttr = ResolveNodeAttributeName(nodeObj, "RouterAddress", "DefaultRouter", "Gateway") ?? "RouterAddress";
+
+            var oldIpObj = TryGetEngineeringAttribute(nodeObj, ipAttr) ?? TryGetPropertyValue(nodeObj, ipAttr);
+            var oldMaskObj = TryGetEngineeringAttribute(nodeObj, maskAttr) ?? TryGetPropertyValue(nodeObj, maskAttr);
+            var oldUseRouterObj = useRouterAttr != null ? TryGetEngineeringAttribute(nodeObj, useRouterAttr) : null;
+            var oldRouterObj = TryGetEngineeringAttribute(nodeObj, routerAttr);
+
+            result["selectedInterfacePath"] = target.Path;
+            result["selectedNodeName"] = TryGetName(nodeObj) ?? "<unnamed>";
+            result["before"] = new JsonObject
+            {
+                ["ipAddress"] = ReadNodeAddress(nodeObj) ?? string.Empty,
+                ["subnetMask"] = ReadNodeSubnetMask(nodeObj) ?? string.Empty,
+                ["useRouter"] = oldUseRouterObj?.ToString() ?? string.Empty,
+                ["routerAddress"] = oldRouterObj?.ToString() ?? string.Empty
+            };
+
+            var writes = new List<KeyValuePair<string, object>>
+            {
+                new KeyValuePair<string, object>(ipAttr, CoerceNodeAttributeValue(normalizedIp, oldIpObj))
+            };
+            if (normalizedMask != null)
+                writes.Add(new KeyValuePair<string, object>(maskAttr, CoerceNodeAttributeValue(normalizedMask, oldMaskObj)));
+            if (normalizedGateway != null)
+            {
+                if (useRouterAttr != null)
+                    writes.Add(new KeyValuePair<string, object>(useRouterAttr, oldUseRouterObj is bool ? (object)true : true));
+                writes.Add(new KeyValuePair<string, object>(routerAttr, CoerceNodeAttributeValue(normalizedGateway, oldRouterObj)));
+            }
+
+            string? writeError = null;
+            if (!TryWriteNodeAttributes(nodeObj, writes, out writeError))
+            {
+                result["availableAttributes"] = ListNodeAttributeNames(nodeObj);
+                result["after"] = BuildNodeIpStateJson(nodeObj, maskAttr, useRouterAttr, routerAttr);
+                result["nodes"] = BuildDeviceNodesJson(device);
+                result["message"] = $"Failed setting IP configuration on '{target.Path}': {writeError}";
+                return result;
+            }
+
+            var actualIp = (ReadNodeAddress(nodeObj) ?? string.Empty).Trim();
+            var actualMask = (ReadNodeSubnetMask(nodeObj) ?? string.Empty).Trim();
+            var actualGateway = (TryGetEngineeringAttribute(nodeObj, routerAttr)?.ToString() ?? string.Empty).Trim();
+            bool ipMatches = string.Equals(actualIp, normalizedIp, StringComparison.OrdinalIgnoreCase);
+            bool maskMatches = normalizedMask == null || string.Equals(actualMask, normalizedMask, StringComparison.OrdinalIgnoreCase);
+            bool gwMatches = normalizedGateway == null || string.Equals(actualGateway, normalizedGateway, StringComparison.OrdinalIgnoreCase);
+
+            result["after"] = BuildNodeIpStateJson(nodeObj, maskAttr, useRouterAttr, routerAttr);
+            result["nodes"] = BuildDeviceNodesJson(device);
+            result["ipAddress"] = actualIp;
+            result["subnetMask"] = actualMask;
+            result["ok"] = ipMatches && maskMatches && gwMatches;
+            result["message"] = (ipMatches && maskMatches && gwMatches)
+                ? $"Device '{device.Name ?? devicePath}' node '{target.Path}' set to {actualIp}"
+                  + (!string.IsNullOrEmpty(actualMask) ? $" / {actualMask}" : string.Empty)
+                : $"Readback mismatch on '{target.Path}': expected IP={normalizedIp}"
+                  + (normalizedMask != null ? $" mask={normalizedMask}" : string.Empty)
+                  + $", got IP={actualIp} mask={actualMask}.";
+            return result;
+        }
+
+        private static List<NetworkNodeInfo> FilterTargetNetworkNodes(List<NetworkNodeInfo> allNodes, string? interfacePath)
+        {
+            if (allNodes.Count == 0) return allNodes;
+            if (!string.IsNullOrWhiteSpace(interfacePath))
+            {
+                var filter = interfacePath!.Trim();
+                var exact = allNodes.Where(n =>
+                    string.Equals(n.Path, filter, StringComparison.OrdinalIgnoreCase) ||
+                    n.Path.EndsWith("/" + filter, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (exact.Count > 0) return exact;
+
+                var partial = allNodes.Where(n =>
+                    n.Path.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                return partial;
+            }
+
+            var ie = allNodes.Where(n => IsIndustrialEthernetNode(n.Node)).ToList();
+            return ie.Count > 0 ? ie : allNodes;
+        }
+
+        private static string? ResolveNodeAttributeName(object nodeObj, params string[] candidates)
+        {
+            if (nodeObj is IEngineeringObject eng)
+            {
+                try
+                {
+                    var names = eng.GetAttributeInfos()
+                        .Select(a => a.Name)
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .ToList();
+                    foreach (var cand in candidates)
+                    {
+                        var hit = names.FirstOrDefault(n => string.Equals(n, cand, StringComparison.OrdinalIgnoreCase));
+                        if (hit != null) return hit;
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var cand in candidates)
+            {
+                if (TryGetEngineeringAttribute(nodeObj, cand) != null) return cand;
+            }
+            return null;
+        }
+
+        private static object CoerceNodeAttributeValue(string value, object? oldValue)
+        {
+            if (oldValue is System.Net.IPAddress)
+                return System.Net.IPAddress.Parse(value);
+            if (oldValue is bool)
+                return bool.Parse(value);
+            return value;
+        }
+
+        private static bool TryWriteNodeAttributes(object nodeObj, List<KeyValuePair<string, object>> writes, out string? error)
+        {
+            error = null;
+            if (nodeObj is IEngineeringObject eng)
+            {
+                try
+                {
+                    foreach (var kv in writes)
+                        eng.SetAttribute(kv.Key, kv.Value);
+                    return true;
+                }
+                catch (Exception singleEx)
+                {
+                    if (writes.Count > 1)
+                    {
+                        try
+                        {
+                            eng.SetAttributes(writes);
+                            return true;
+                        }
+                        catch (Exception batchEx)
+                        {
+                            error = $"{FormatExceptionDetail(singleEx)} | batch SetAttributes: {FormatExceptionDetail(batchEx)}";
+                            return false;
+                        }
+                    }
+                    error = FormatExceptionDetail(singleEx);
+                    return false;
+                }
+            }
+
+            foreach (var kv in writes)
+            {
+                if (!TrySetEngineeringAttribute(nodeObj, kv.Key, kv.Value))
+                {
+                    error = $"Failed setting attribute '{kv.Key}' on '{nodeObj.GetType().Name}'.";
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static JsonObject BuildNodeIpStateJson(object nodeObj, string maskAttr, string? useRouterAttr, string routerAttr)
+            => new JsonObject
+            {
+                ["ipAddress"] = ReadNodeAddress(nodeObj) ?? string.Empty,
+                ["subnetMask"] = TryGetEngineeringAttribute(nodeObj, maskAttr)?.ToString() ?? ReadNodeSubnetMask(nodeObj) ?? string.Empty,
+                ["useRouter"] = useRouterAttr != null ? (TryGetEngineeringAttribute(nodeObj, useRouterAttr)?.ToString() ?? string.Empty) : string.Empty,
+                ["routerAddress"] = TryGetEngineeringAttribute(nodeObj, routerAttr)?.ToString() ?? string.Empty
+            };
+
+        private static JsonArray ListNodeAttributeNames(object nodeObj)
+        {
+            var arr = new JsonArray();
+            if (nodeObj is IEngineeringObject eng)
+            {
+                try
+                {
+                    foreach (var info in eng.GetAttributeInfos())
+                    {
+                        if (!string.IsNullOrWhiteSpace(info.Name))
+                            arr.Add(info.Name);
+                    }
+                }
+                catch { }
+            }
+            return arr;
         }
 
         // One-shot project topology: every device with its network nodes (IP / subnet / type).
@@ -2699,6 +2981,406 @@ namespace TiaMcpServer.Siemens
             }
             prefix.Append(isLast ? "└── " : "├── ");
             return prefix.ToString();
+        }
+
+        private void FindProtectionServices(
+            Device device,
+            out DeviceItem? accessItem,
+            out PlcAccessLevelProvider? accessProvider,
+            out DeviceItem? masterSecretItem,
+            out PlcMasterSecretConfigurator? masterSecretConfigurator,
+            out DeviceItem? accessControlItem,
+            out PlcAccessControlConfigurationProvider? accessControlProvider)
+        {
+            accessItem = null;
+            accessProvider = null;
+            masterSecretItem = null;
+            masterSecretConfigurator = null;
+            accessControlItem = null;
+            accessControlProvider = null;
+
+            foreach (var root in device.DeviceItems)
+            {
+                foreach (var tup in TraverseDeviceItems(root, root.Name))
+                {
+                    var item = tup.Item1;
+                    if (accessProvider == null)
+                    {
+                        try
+                        {
+                            var ap = item.GetService<PlcAccessLevelProvider>();
+                            if (ap != null) { accessItem = item; accessProvider = ap; }
+                        }
+                        catch { }
+                    }
+                    if (masterSecretConfigurator == null)
+                    {
+                        try
+                        {
+                            var ms = item.GetService<PlcMasterSecretConfigurator>();
+                            if (ms != null) { masterSecretItem = item; masterSecretConfigurator = ms; }
+                        }
+                        catch { }
+                    }
+                    if (accessControlProvider == null)
+                    {
+                        try
+                        {
+                            var ac = item.GetService<PlcAccessControlConfigurationProvider>();
+                            if (ac != null) { accessControlItem = item; accessControlProvider = ac; }
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+
+        private (PlcPasswordPolicyService? modern, LegacyPlcPasswordPolicyService? legacy) ResolvePasswordPolicyServices(Device device)
+        {
+            PlcPasswordPolicyService? modern = null;
+            LegacyPlcPasswordPolicyService? legacy = null;
+
+            IEnumerable<IEngineeringServiceProvider?> Candidates()
+            {
+                yield return _project as IEngineeringServiceProvider;
+                yield return _portal as IEngineeringServiceProvider;
+                yield return device as IEngineeringServiceProvider;
+                foreach (var root in device.DeviceItems)
+                    foreach (var tup in TraverseDeviceItems(root, root.Name))
+                        yield return tup.Item1 as IEngineeringServiceProvider;
+            }
+
+            foreach (var sp in Candidates())
+            {
+                if (sp == null) continue;
+                if (modern == null) { try { modern = sp.GetService<PlcPasswordPolicyService>(); } catch { } }
+                if (legacy == null) { try { legacy = sp.GetService<LegacyPlcPasswordPolicyService>(); } catch { } }
+                if (modern != null && legacy != null) break;
+            }
+            return (modern, legacy);
+        }
+
+        private JsonObject ReadProtectionSnapshot(Device device)
+        {
+            FindProtectionServices(
+                device,
+                out var accessItem, out var accessProvider,
+                out var msItem, out var msCfg,
+                out var acItem, out var acProvider);
+
+            string? accessLevel = null;
+            if (accessProvider != null)
+            {
+                try { accessLevel = accessProvider.PlcProtectionAccessLevel.ToString(); } catch { }
+            }
+
+            string? masterSecretState = null;
+            if (msCfg != null)
+            {
+                try { masterSecretState = msCfg.MasterSecretConfiguration.ToString(); } catch { }
+            }
+
+            string? accessControlState = null;
+            if (acProvider != null)
+            {
+                try { accessControlState = acProvider.PlcAccessControlConfiguration.ToString(); } catch { }
+            }
+
+            var (pgItem, pgAttr) = FindPutGetAttribute(device);
+            bool? putGetEnabled = null;
+            if (pgItem != null && pgAttr != null)
+            {
+                try { putGetEnabled = AttrValueIsEnabled(pgItem.GetAttribute(pgAttr)); } catch { }
+            }
+
+            var (modernPolicy, legacyPolicy) = ResolvePasswordPolicyServices(device);
+            bool? modernPolicyEnabled = null;
+            bool? legacyPolicyEnabled = null;
+            if (modernPolicy != null) { try { modernPolicyEnabled = modernPolicy.PasswordPolicyEnabled; } catch { } }
+            if (legacyPolicy != null) { try { legacyPolicyEnabled = legacyPolicy.PasswordPolicyEnabled; } catch { } }
+
+            return new JsonObject
+            {
+                ["device"] = device.Name,
+                ["hasAccessLevelProvider"] = accessProvider != null,
+                ["accessLevelItem"] = accessItem?.Name ?? string.Empty,
+                ["accessLevel"] = accessLevel ?? string.Empty,
+                ["hasMasterSecretConfigurator"] = msCfg != null,
+                ["masterSecretItem"] = msItem?.Name ?? string.Empty,
+                ["masterSecretConfiguration"] = masterSecretState ?? string.Empty,
+                ["hasAccessControlProvider"] = acProvider != null,
+                ["accessControlItem"] = acItem?.Name ?? string.Empty,
+                ["accessControlConfiguration"] = accessControlState ?? string.Empty,
+                ["putGetEnabled"] = putGetEnabled,
+                ["passwordPolicyEnabled"] = modernPolicyEnabled,
+                ["legacyPasswordPolicyEnabled"] = legacyPolicyEnabled,
+            };
+        }
+
+        /// <summary>Read CPU protection level, confidential configuration master secret state, access control mode, and PUT/GET access.</summary>
+        public JsonObject GetPlcProtection(string devicePath)
+        {
+            if (IsProjectNull()) return new JsonObject { ["found"] = false, ["message"] = "No project open." };
+            var device = GetDevice(devicePath);
+            if (device == null) return new JsonObject { ["found"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
+
+            var snap = ReadProtectionSnapshot(device);
+            snap["found"] = true;
+            return snap;
+        }
+
+        /// <summary>Configure CPU protection level, confidential PLC configuration master secret, access control (V3.1+), and optional password policy.</summary>
+        public JsonObject SetPlcProtection(
+            string devicePath,
+            string? accessLevel = null,
+            string? accessPassword = null,
+            string? accessPasswordLevel = null,
+            bool resetAccessPassword = false,
+            string? masterSecretMode = null,
+            string? masterSecretPassword = null,
+            string? oldMasterSecretPassword = null,
+            string? accessControlMode = null,
+            bool? passwordPolicyEnabled = null)
+        {
+            if (IsProjectNull()) return new JsonObject { ["ok"] = false, ["message"] = "No project open." };
+            var device = GetDevice(devicePath);
+            if (device == null) return new JsonObject { ["ok"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
+
+            var before = ReadProtectionSnapshot(device);
+            var actions = new JsonArray();
+            var errors = new JsonArray();
+
+            FindProtectionServices(
+                device,
+                out _, out var accessProvider,
+                out _, out var msCfg,
+                out _, out var acProvider);
+
+            if (passwordPolicyEnabled.HasValue)
+            {
+                var (modernPolicy, legacyPolicy) = ResolvePasswordPolicyServices(device);
+                bool anySet = false;
+                if (modernPolicy != null)
+                {
+                    try { modernPolicy.PasswordPolicyEnabled = passwordPolicyEnabled.Value; actions.Add($"PlcPasswordPolicyService.PasswordPolicyEnabled={passwordPolicyEnabled.Value}"); anySet = true; }
+                    catch (Exception ex) { errors.Add($"PlcPasswordPolicyService failed: {ex.Message}"); }
+                }
+                if (legacyPolicy != null)
+                {
+                    try { legacyPolicy.PasswordPolicyEnabled = passwordPolicyEnabled.Value; actions.Add($"LegacyPlcPasswordPolicyService.PasswordPolicyEnabled={passwordPolicyEnabled.Value}"); anySet = true; }
+                    catch (Exception ex) { errors.Add($"LegacyPlcPasswordPolicyService failed: {ex.Message}"); }
+                }
+                if (!anySet && errors.Count == 0)
+                    errors.Add("Password policy service is not available on this project/CPU.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(accessControlMode))
+            {
+                if (acProvider == null)
+                {
+                    errors.Add("PlcAccessControlConfigurationProvider is not available on this CPU/firmware (V3.1+ only).");
+                }
+                else if (Enum.TryParse<PlcAccessControlConfiguration>(accessControlMode!.Trim(), ignoreCase: true, out var acVal))
+                {
+                    try
+                    {
+                        acProvider.PlcAccessControlConfiguration = acVal;
+                        actions.Add($"PlcAccessControlConfiguration={acVal}");
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"Failed to set PlcAccessControlConfiguration='{acVal}': {ex.Message}");
+                    }
+                }
+                else
+                {
+                    errors.Add($"Invalid accessControlMode '{accessControlMode}'. Valid: {string.Join(", ", Enum.GetNames(typeof(PlcAccessControlConfiguration)))}");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(masterSecretMode))
+            {
+                if (msCfg == null)
+                {
+                    errors.Add("PlcMasterSecretConfigurator is not available on this CPU/firmware.");
+                }
+                else
+                {
+                    var norm = masterSecretMode!.Trim().ToLowerInvariant().Replace("_", "").Replace("-", "");
+                    try
+                    {
+                        switch (norm)
+                        {
+                            case "protect":
+                            case "withpassword":
+                            {
+                                using var newSec = CreateSecureString(masterSecretPassword);
+                                if (newSec == null)
+                                {
+                                    errors.Add("masterSecretPassword is required when masterSecretMode is 'protect'.");
+                                    break;
+                                }
+                                if (msCfg.MasterSecretConfiguration == MasterSecretConfiguration.WithPassword && !string.IsNullOrEmpty(oldMasterSecretPassword))
+                                {
+                                    using var oldSec = CreateSecureString(oldMasterSecretPassword);
+                                    msCfg.ChangePassword(oldSec!, newSec);
+                                    actions.Add("PlcMasterSecretConfigurator.ChangePassword(...)");
+                                }
+                                else
+                                {
+                                    msCfg.Protect(newSec);
+                                    actions.Add("PlcMasterSecretConfigurator.Protect(...)");
+                                }
+                                break;
+                            }
+                            case "unprotect":
+                            case "withoutpassword":
+                            {
+                                var pwd = !string.IsNullOrEmpty(masterSecretPassword) ? masterSecretPassword : oldMasterSecretPassword;
+                                if (!string.IsNullOrEmpty(pwd))
+                                {
+                                    using var sec = CreateSecureString(pwd);
+                                    msCfg.Unprotect(sec!);
+                                    actions.Add("PlcMasterSecretConfigurator.Unprotect(password)");
+                                }
+                                else
+                                {
+                                    msCfg.Unprotect();
+                                    actions.Add("PlcMasterSecretConfigurator.Unprotect()");
+                                }
+                                break;
+                            }
+                            case "changepassword":
+                            {
+                                using var oldSec = CreateSecureString(oldMasterSecretPassword);
+                                using var newSec = CreateSecureString(masterSecretPassword);
+                                if (oldSec == null || newSec == null)
+                                    errors.Add("oldMasterSecretPassword and masterSecretPassword are required for 'change_password'.");
+                                else
+                                {
+                                    msCfg.ChangePassword(oldSec, newSec);
+                                    actions.Add("PlcMasterSecretConfigurator.ChangePassword(...)");
+                                }
+                                break;
+                            }
+                            case "reset":
+                                msCfg.Reset();
+                                actions.Add("PlcMasterSecretConfigurator.Reset()");
+                                break;
+                            default:
+                                errors.Add($"Invalid masterSecretMode '{masterSecretMode}'. Valid: protect, unprotect, change_password, reset.");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"PlcMasterSecretConfigurator '{norm}' failed: {ex.Message}");
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(accessLevel) || !string.IsNullOrWhiteSpace(accessPassword) || resetAccessPassword)
+            {
+                if (accessProvider == null)
+                {
+                    errors.Add("PlcAccessLevelProvider is not available on this CPU/firmware.");
+                }
+                else
+                {
+                    PlcProtectionAccessLevel targetLevel = accessProvider.PlcProtectionAccessLevel;
+                    bool levelOk = true;
+                    if (!string.IsNullOrWhiteSpace(accessLevel))
+                    {
+                        if (Enum.TryParse<PlcProtectionAccessLevel>(accessLevel!.Trim(), ignoreCase: true, out var parsed))
+                        {
+                            targetLevel = parsed;
+                            try
+                            {
+                                accessProvider.PlcProtectionAccessLevel = parsed;
+                                actions.Add($"PlcProtectionAccessLevel={parsed}");
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.Add($"Failed to set PlcProtectionAccessLevel='{parsed}': {ex.Message}");
+                                levelOk = false;
+                            }
+                        }
+                        else
+                        {
+                            errors.Add($"Invalid accessLevel '{accessLevel}'. Valid: {string.Join(", ", Enum.GetNames(typeof(PlcProtectionAccessLevel)))}");
+                            levelOk = false;
+                        }
+                    }
+
+                    if (levelOk && resetAccessPassword)
+                    {
+                        var pwdLevel = targetLevel;
+                        if (!string.IsNullOrWhiteSpace(accessPasswordLevel)
+                            && Enum.TryParse<PlcProtectionAccessLevel>(accessPasswordLevel!.Trim(), ignoreCase: true, out var parsedPwdLvl))
+                            pwdLevel = parsedPwdLvl;
+                        else if (pwdLevel == PlcProtectionAccessLevel.None)
+                            pwdLevel = PlcProtectionAccessLevel.FullAccess;
+
+                        try
+                        {
+                            accessProvider.ResetPassword(pwdLevel);
+                            actions.Add($"PlcAccessLevelProvider.ResetPassword({pwdLevel})");
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"ResetPassword({pwdLevel}) failed: {ex.Message}");
+                        }
+                    }
+
+                    if (levelOk && !string.IsNullOrEmpty(accessPassword))
+                    {
+                        var pwdLevel = targetLevel;
+                        if (!string.IsNullOrWhiteSpace(accessPasswordLevel))
+                        {
+                            if (!Enum.TryParse<PlcProtectionAccessLevel>(accessPasswordLevel!.Trim(), ignoreCase: true, out var parsedPwdLvl))
+                            {
+                                errors.Add($"Invalid accessPasswordLevel '{accessPasswordLevel}'. Valid: {string.Join(", ", Enum.GetNames(typeof(PlcProtectionAccessLevel)))}");
+                                pwdLevel = PlcProtectionAccessLevel.None;
+                            }
+                            else
+                            {
+                                pwdLevel = parsedPwdLvl;
+                            }
+                        }
+                        else if (pwdLevel == PlcProtectionAccessLevel.None)
+                        {
+                            pwdLevel = PlcProtectionAccessLevel.FullAccess;
+                        }
+
+                        if (pwdLevel != PlcProtectionAccessLevel.None)
+                        {
+                            try
+                            {
+                                using var sec = CreateSecureString(accessPassword);
+                                accessProvider.SetPassword(pwdLevel, sec!);
+                                actions.Add($"PlcAccessLevelProvider.SetPassword({pwdLevel}, ...)");
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.Add($"SetPassword({pwdLevel}) failed: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            var after = ReadProtectionSnapshot(device);
+            bool ok = errors.Count == 0;
+            return new JsonObject
+            {
+                ["ok"] = ok,
+                ["device"] = device.Name,
+                ["actions"] = actions,
+                ["errors"] = errors,
+                ["before"] = before,
+                ["after"] = after,
+                ["note"] = "Protection/security settings are hardware-configuration changes — run CompileHardware and DownloadToPlc (hardware) to apply."
+            };
         }
 
         #endregion

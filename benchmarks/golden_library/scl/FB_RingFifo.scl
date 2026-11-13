@@ -1,0 +1,150 @@
+﻿FUNCTION_BLOCK "FB_RingFifo"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      enqueue : Bool;   // 入队上升沿触发
+      dequeue : Bool;   // 出队上升沿触发
+      itemIn : DInt;   // 外部入队数据（物料ID/高度编码/库位号）
+      clear : Bool;   // 外部清空队列复位
+   END_VAR
+
+   VAR_OUTPUT 
+      itemOut : DInt;   // 出队数据输出
+      count : Int;   // 当前有效元素个数 (0..32)
+      isEmpty : Bool;   // 队列为空标志
+      isFull : Bool;   // 队列已满标志
+      error : Bool;   // 操作错误标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_RingFifo";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statBuffer : Array[0..31] of DInt;   // 容量32的固定环形数组
+      statHead : DInt;   // 写入尾指针 (0..31)
+      statTail : DInt;   // 读取头指针 (0..31)
+      statCount : Int;   // 当前元素计数
+      statLastOut : DInt;   // 最近一次出队值
+      statEnqOld : Bool;   // 入队边沿存储
+      statDeqOld : Bool;   // 出队边沿存储
+   END_VAR
+
+   VAR_TEMP 
+      tempClearActive : Bool;
+      tempEnqReq : Bool;
+      tempDeqReq : Bool;
+      tempEnqRise : Bool;
+      tempDeqRise : Bool;
+      tempDataIn : DInt;
+      tempError : Bool;
+      tempStatus : Word;
+   END_VAR
+
+   VAR CONSTANT 
+      CAPACITY : Int := 32;
+      CAPACITY_DINT : DInt := 32;
+      STATUS_OK : Word := 16#0000;
+      ERR_QUEUE_FULL : Word := 16#8001;
+      ERR_QUEUE_EMPTY : Word := 16#8002;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempClearActive := FALSE;
+    #tempEnqReq := FALSE;
+    #tempDeqReq := FALSE;
+    #tempEnqRise := FALSE;
+    #tempDeqRise := FALSE;
+    #tempDataIn := 0;
+    #tempError := FALSE;
+    #tempStatus := #STATUS_OK;
+
+    // 1. 清空优先处理（同扫描周期禁止再入队/出队）
+    #tempClearActive := #clear OR #ioHmi.bClearCmd;
+    IF #tempClearActive THEN
+        #statHead := 0;
+        #statTail := 0;
+        #statCount := 0;
+        #statLastOut := 0;
+        #ioHmi.bClearCmd := FALSE;
+        #tempError := FALSE;
+        #tempStatus := #STATUS_OK;
+    END_IF;
+
+    // 2. 合并外部与 HMI 入队/出队请求，检测上升沿（清空生效周期屏蔽边沿触发）
+    #tempEnqReq := #enqueue OR #ioHmi.bManualEnqueue;
+    #tempEnqRise := (NOT #tempClearActive) AND #tempEnqReq AND (NOT #statEnqOld);
+    #statEnqOld := #tempEnqReq;
+
+    #tempDeqReq := #dequeue OR #ioHmi.bManualDequeue;
+    #tempDeqRise := (NOT #tempClearActive) AND #tempDeqReq AND (NOT #statDeqOld);
+    #statDeqOld := #tempDeqReq;
+
+    // 入队数据源选取
+    IF #ioHmi.bManualEnqueue THEN
+        #tempDataIn := #ioHmi.diManualItemIn;
+    ELSE
+        #tempDataIn := #itemIn;
+    END_IF;
+
+    // 清除 HMI 触发标志
+    IF #ioHmi.bManualEnqueue THEN
+        #ioHmi.bManualEnqueue := FALSE;
+    END_IF;
+    IF #ioHmi.bManualDequeue THEN
+        #ioHmi.bManualDequeue := FALSE;
+    END_IF;
+
+    // 3. 入队操作
+    IF #tempEnqRise THEN
+        IF #statCount >= #CAPACITY THEN
+            #tempError := TRUE;
+            #tempStatus := #ERR_QUEUE_FULL;
+        ELSE
+            #statBuffer[#statHead] := #tempDataIn;
+            #statHead := (#statHead + 1) MOD #CAPACITY_DINT;
+            #statCount := #statCount + 1;
+            #tempError := FALSE;
+            #tempStatus := #STATUS_OK;
+        END_IF;
+    END_IF;
+
+    // 4. 出队操作
+    IF #tempDeqRise THEN
+        IF #statCount <= 0 THEN
+            #tempError := TRUE;
+            #tempStatus := #ERR_QUEUE_EMPTY;
+        ELSE
+            #statLastOut := #statBuffer[#statTail];
+            #statTail := (#statTail + 1) MOD #CAPACITY_DINT;
+            #statCount := #statCount - 1;
+            #tempError := FALSE;
+            #tempStatus := #STATUS_OK;
+        END_IF;
+    END_IF;
+
+    // 5. 队首预览更新
+    IF #statCount > 0 THEN
+        #ioHmi.diHeadPreview := #statBuffer[#statTail];
+    ELSE
+        #ioHmi.diHeadPreview := 0;
+    END_IF;
+
+    // 同步写回 HMI 状态
+    #ioHmi.diLastItemOut := #statLastOut;
+    #ioHmi.iCount := #statCount;
+    #ioHmi.bIsEmpty := (#statCount = 0);
+    #ioHmi.bIsFull := (#statCount >= #CAPACITY);
+    #ioHmi.bError := #tempError;
+    #ioHmi.wStatus := #tempStatus;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #itemOut := #statLastOut;
+    #count := #statCount;
+    #isEmpty := (#statCount = 0);
+    #isFull := (#statCount >= #CAPACITY);
+    #error := #tempError;
+    #status := #tempStatus;
+END_FUNCTION_BLOCK

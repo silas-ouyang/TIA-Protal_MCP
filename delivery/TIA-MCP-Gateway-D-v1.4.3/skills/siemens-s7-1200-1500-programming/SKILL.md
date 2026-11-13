@@ -11,12 +11,13 @@ description: 西门子 SIMATIC S7-1200 / S7-1500 官方编程风格指南（V2.0
 
 ## 1. 知识源优先级与本机 Skill 协同裁决
 
-### 1.1 内部三份官方文档的关系与冲突裁决
+### 1.1 内部三份官方文档与本机实测知识源的关系
 | 文档源 | 版本与条目 ID | 角色定位 | 冲突裁决优先级 | 按需加载文件 |
 | :--- | :--- | :--- | :--- | :--- |
 | **编程风格指南 (Style Guide)** | V2.0 (109478084) | **规范源（What）**：78 条强制规则与建议 | **最高优**（与编程指南冲突时以本文件为准） | [`references/rules.md`](references/rules.md) / [`assets/rules.json`](assets/rules.json) |
 | **编程指南 (Programming Guideline)** | V1.6 (81318674) | **理由源（Why）**：优化块内存对齐、传参机制、F-Safety | 次高优（提供底层原理与架构设计依据） | [`references/guideline.md`](references/guideline.md) |
 | **LGF 通用函数库 (LGF Library)** | V5.5.0 (109479728) | **工具与蓝本源（How）**：189 个标准块接口与算法 | 对应 TIA V20/V21（V17-V19 对应 LGF V5.2.x） | [`references/lgf-index.md`](references/lgf-index.md) / [`references/lgf-blueprints.md`](references/lgf-blueprints.md) |
+| **TIA V20 黄金功能块库与编译防坑规约 (Golden Library & Anti-Patterns)** | 实机验证 (15块 + 9条规约) | **实机验证源（Verified Blueprints & Rules）**：15 个 0E/0W 标准块 + 15 个 HMI UDT + 9 条实测强制规约 `CP001~CP005`/`LP001~LP004` | 架构规范遵 Style Guide，实机实现与避坑优先级最高 | [`references/golden-standard-blocks.md`](references/golden-standard-blocks.md) / [`references/rules.md`](references/rules.md) §11 |
 
 ### 1.2 与本机其它博途 Skill 的职责边界及【命名双模裁决】
 - **MCP 通道与读写编译下载流程** → 归 `tia-portal-ops` 管（先读后写、编译 0 错才保存）。
@@ -32,7 +33,7 @@ description: 西门子 SIMATIC S7-1200 / S7-1500 官方编程风格指南（V2.0
 
 ## 2. 按需加载路由与决策树
 
-``text
+```text
 当前任务是什么？
 ├─ 1. 新建项目 / 设计 FB、FC、DB、UDT 架构
 │   ├─ 先看本文件 §3（黄金铁律 Top 12 + FC/FB 传参矩阵 + PLCopen 状态码表）
@@ -44,13 +45,16 @@ description: 西门子 SIMATIC S7-1200 / S7-1500 官方编程风格指南（V2.0
 │   ├─ 逐项对照 §4 的 78 条规则速查表（重点核查 RU/SE/DA/PE 四大类）
 │   └─ 调阅 references/rules.md 中对应规则 ID 的正反例代码与 rationale
 │
-└─ 3. 需要通用功能（FIFO队列、滤波、线性标定、脉冲继电器、斜坡、矩阵、CRC、日历、位/字互转等）
-    ├─ 先读 references/lgf-index.md 检索 189 个 LGF 官方块
-    ├─ 【分支 A】通过 d_tree 确认当前博途工程已导入对应 LGF_* 块：
-    │   └─ 读 references/lgf/<块名>.md 获取精确引脚签名与错误码，直接实例化调用
-    └─ 【分支 B】当前工程未导入 LGF 库（严禁直接写 LGF_* 调用，否则必报编译错误！）：
-        └─ 读 references/lgf-blueprints.md（含 10 大高频算法块原生 SCL 完整实现）或 references/lgf/<块名>.md，用原生 SCL 自研实现
-``
+├─ 3. 需要通用功能（FIFO队列、滤波、线性标定、脉冲继电器、斜坡、矩阵、CRC、日历、位/字互转等）
+│   ├─ 先读 references/lgf-index.md 检索 189 个 LGF 官方块
+│   ├─ 【分支 A】通过 d_tree 确认当前博途工程已导入对应 LGF_* 块：
+│   │   └─ 读 references/lgf/<块名>.md 获取精确引脚签名与错误码，直接实例化调用
+│   └─ 【分支 B】当前工程未导入 LGF 库（严禁直接写 LGF_* 调用，否则必报编译错误！）：
+│       └─ 读 references/lgf-blueprints.md（含 10 大高频算法块原生 SCL 完整实现）或 references/lgf/<块名>.md，用原生 SCL 自研实现
+│
+└─ 4. 需要工业设备控制或 Factory I/O 场景顺控（模拟量定标报警、低通滤波、气缸、正反转电机、环形FIFO、按钮防抖、Modbus轮询、双回路急停、高低分拣、气动抓手、三段缓冲带、旋转转盘、立体仓库、液位PID、双工位装配）
+    └─ 必读 references/golden-standard-blocks.md 直接复用已通过 TIA V20 0E/0W 验证的 15 个黄金块与 UDT_HMI_xxx
+```
 
 ---
 
@@ -194,6 +198,15 @@ description: 西门子 SIMATIC S7-1200 / S7-1500 官方编程风格指南（V2.0
 | **PE014** | 建议 | 性能 | 避免运行时密集指令 | 减少 `Serialize`/`Deserialize` 及慢速 SMC 卡读写（`WRIT_DBL`/`FileRead`）频次，归档配方优先用 DataLog/Recipe。 |
 | **PE015** | 建议 | 性能 | SCL/LAD/FBD 用于运行时间敏感的应用 | 时间严苛的高速控制段使用 SCL/LAD/FBD，避免在高速路径上使用额外生成诊断代码的 GRAPH。 |
 | **PE016** | 建议 | 性能 | 检查最小循环时间的设置 | 快速响应应用关闭“最小循环时间”；高通信负载应用开启并适当调高最小循环时间以保障通信吞吐。 |
+| **CP001** | 规则 | 编译避坑 | 严禁回读 VAR_OUTPUT 输出参数 | 表达式右侧禁读 Output，用 VAR_TEMP/VAR 计算后在块尾集中单向写一次，防 uninitialized 警告。 |
+| **CP002** | 规则 | 编译避坑 | VAR_TEMP 临时变量块首全量赋初值 | 进入 BEGIN 首行必须对所有 Temp 变量显式赋安全初值，严禁仅在 IF/CASE 分支内局部赋值。 |
+| **CP003** | 规则 | 编译避坑 | FC 禁 VAR 段，FB 定时器必用多重背景并显式复位 | FC 禁声明 VAR 段；FB 定时器必用 VAR 段 TON_TIME 多重背景，并在 IDLE/FAULT 显式 IN:=FALSE 复位。 |
+| **CP004** | 规则 | 编译避坑 | TIME/DINT/REAL 严禁混算与浮点数直接判等 | Time 转整数必用 TIME_TO_DINT，浮点常量必带 .0，REAL 禁 =/<> 改用 <=/>= 或 ABS 容差比较。 |
+| **CP005** | 规则 | 编译避坑 | TIA V20 Openness 依赖顺序与符号双引号/井号铁律 | 先导编译 UDT 再导 FB/FC；局部变量 100% 加 # 前缀，全局块名与 UDT 100% 加英文双引号。 |
+| **LP001** | 规则 | 逻辑规约 | 电机正反转状态机严禁旁路灭弧冷却死区 | 反向请求排在停止前，且运行态停机或换向必须强制进 STATE_DEADBAND 冷却至少 1.0s，禁直接跳 IDLE。 |
+| **LP002** | 规则 | 逻辑规约 | PLCopen Execute STEP_DONE 禁同周期跳 IDLE | 进入 STEP_DONE 必须维持 done=TRUE 至少 1 周期等待 NOT execute 确认，done 与 busy 严格互斥。 |
+| **LP003** | 规则 | 逻辑规约 | EDM 外部接触器常闭反馈禁放进持续切断条件 | feedbackLoopOk 常闭辅助回路仅允许在复位上升沿作吸合前置校验，吸合运行中严禁因 NC 断开自切。 |
+| **LP004** | 规则 | 逻辑规约 | 顺控预备步禁漏开驱动，动作步禁漏判工位限位 | 顺控每步必须闭环核对所有声明的到位/限位传感器与双限位互锁，预备步保持进料辊道运转，禁悬空引脚。 |
 
 ---
 
@@ -215,3 +228,71 @@ description: 西门子 SIMATIC S7-1200 / S7-1500 官方编程风格指南（V2.0
   9. **Technology (§4.15, 4块)**：`LGF_RampCI`, `LGF_LimRateOfChangeCI`/`AdvancedCI`, `LGF_NonLinearInterpolation`（折线插值）
   10. **Measurement (§4.16, 15块)**：`LGF_FloatingAverage`, `LGF_SimpleSmoothingFB`/`FC`, `LGF_SmoothByPolynomFB`/`FC`, `LGF_DifferenceQuotientFB`/`FC`, `LGF_RegressionLine`, `LGF_Boxplot*`, `LGF_Histogram*`
   11. **System & UDTs (§4.17~5.7, 27块)**：大小端检测、PROFINET 从站激活/去激活 `LGF_ActDeactDevice`、CPU 负载测量 `LGF_MeasureCpuLoad`、读取 PN 接口 IP/MAC，以及 `LGF_typeDiagnostics` 等 19 个配套 UDT。
+
+---
+
+## 6. TIA V20 实测编译避坑死规矩（Top 5）与工业逻辑反模式（Top 4）
+
+> 来源沉淀：TIA Portal V20 + S7-1500 真实环境 15 个工业标准 FB/FC 及配套 UDT 通宵流水线编译与安全终审实战（详见 [`references/rules.md`](references/rules.md) §11）。
+
+### 6.1 Top 5 编译避坑死规矩
+1. **严禁回读 `VAR_OUTPUT` 引脚（Rule DA008 / CP001）**：
+   - 表达式右侧（RHS）或 `IF/CASE` 条件中**严禁读取任何 `VAR_OUTPUT` 输出参数**！
+   - 博途静态分析器无法证明所有控制流分支读取前已赋值时，会直接抛出 `The parameter '#xxx' might not be initialized` 警告。
+   - **铁律**：所有输出状态在 `VAR`（`#stat...`）或 `VAR_TEMP`（`#temp...`）中完成运算，仅在块末尾集中执行一次单向写入赋值。
+2. **`VAR_TEMP` 必须在 `BEGIN` 首段无条件全量赋初值（Rule SE002 / CP002）**：
+   - 临时变量驻留在 CPU 局部堆栈（L 栈），未初始化会残留上一周期的脏数据导致幽灵动作或编译警告。
+   - **铁律**：进入 `BEGIN` 的第一段，必须对 `VAR_TEMP` 声明的每一个临时变量无条件赋安全初值（`Bool:=FALSE;`、`Int:=0;`、`Real:=0.0;`、`Time:=T#0s;`），严禁仅在 `IF/CASE` 分支内局部赋值。
+3. **`FC` 禁声明 `VAR` 静态段，`FB` 定时器必用 `VAR` 多重背景并显式复位（Rule AL001 / CP003）**：
+   - 博途 SCL 中 `FUNCTION`（FC）仅支持 `VAR_INPUT/OUTPUT/IN_OUT/TEMP/CONSTANT`，写 `VAR` 直接报语法错误。FC 跨周期状态记忆必须通过挂载于 `VAR_IN_OUT` 的 `"UDT_HMI_xxx"` 传入。
+   - `FB` 内定时器必须声明在 `VAR` 段为 `TON_TIME` 多重背景；严禁塞在 `IF` 单边分支导致无法复位，必须在 `IDLE/FAULT` 分支显式调用 `#instTimer(IN := FALSE, PT := ...)`。
+4. **`TIME`/`DINT`/`REAL` 严禁隐式混算与浮点数直接判等（Rule PE008 / CP004）**：
+   - `Time` 与整数毫秒换算必须使用显式转换函数 `TIME_TO_DINT(#timeVal)`；浮点常量必须带小数点（写 `0.0`、`1.0`，严禁写 `0`、`1`）。
+   - 严禁对 `REAL` 浮点数使用 `=` 或 `<>` 直接判等；边界与零值判断必须使用 `<= 0.0`、`>= 0.0` 或 `ABS(a - b) <= 1.0e-6`。
+5. **TIA V20 Openness 外部源导入依赖顺序与符号规范（CP005）**：
+   - **导入顺序**：必须先导入编译 `UDT_HMI_xxx`，再导入编译引用该 UDT 的 `FB/FC`，否则报 `Data type unknown`。
+   - **符号规范**：块内所有局部变量（形参/静态/临时/常量）在代码体中 100% 强制带 `#` 前缀；所有全局块名和 UDT 类型名 100% 强制带英文双引号 `"..."`（如 `ioHmi : "UDT_HMI_CylinderCtrl";`）。
+
+### 6.2 Top 4 编译器不报的工业逻辑反模式
+1. **反模式 L1（正反转换向死区被旁路 / LP001）**：
+   - **陷阱**：在正转/反转运行分支中，若停止退出条件（`NOT reqFwd`）排在反向请求（`reqRev`）之前，直接切换方向时会在第 1 周期跳回 `STATE_IDLE`，第 2 周期立即吸合反转，完全绕过接触器灭弧死区导致主回路相间短路爆弧！
+   - **规约**：状态机必须将反向请求判断排在停止退出前，且从运行态无论是正常停止还是换向，均必须强制进入 `STATE_DEADBAND` 冷却态（维持至少 1.0s），冷却计时未到绝不允许跳回 `STATE_IDLE`。
+2. **反模式 L2（`STEP_DONE` 同周期跳回 `IDLE` 吞掉 `done` 脉冲 / LP002）**：
+   - **陷阱**：进入 `STEP_DONE` 分支后，如果同周期直接写 `#statStep := #STEP_IDLE;`，块尾计算 `#done := (#statStep = #STEP_DONE)` 结果恒为 `FALSE`，上位调度永远收不到完成握手信号造成顺控假死。
+   - **规约**：遵循 PLCopen `Execute` 握手规范（`DA012`），进入 `STEP_DONE` 后必须保持 `done := TRUE` 至少 1 个完整扫描周期，等待外部 `NOT execute` 释放后才返回 `STEP_IDLE`，且 `done` 与 `busy` 严格互斥。
+3. **反模式 L3（EDM 外部接触器常闭反馈放进持续切断条件 / LP003）**：
+   - **陷阱**：安全继电器/急停模块的外部设备监控回路（EDM `feedbackLoopOk`）串联的是外部接触器的**常闭（NC）辅助触点**。主接触器吸合后 NC 辅助触点必然断开；若将 `OR (NOT #feedbackLoopOk)` 写在持续运行切断条件中，安全输出吸合后的下一个周期就会误切断自锁！
+   - **规约**：`feedbackLoopOk` 仅允许在复位上升沿（`STATE_WAIT_RESET -> STATE_RUN`）作为闭合前置校验，吸合运行期间严禁因 `feedbackLoopOk = FALSE` 自切。
+4. **反模式 L4（顺控预备步漏开传送带或漏判工位限位 / LP004）**：
+   - **陷阱**：在 `STEP_WAIT_ENTRY` 等待进料时若关闭进料辊道，仅靠上游惯性工件会卡在分界传感器前；或声明了 `posAtLimit`（挡料板到位）和双限位传感器，在动作步中却未等待限位到位即触发推料/出料，引发机械干涉撞刀。
+   - **规约**：顺控状态机每一步必须闭环核对所有声明的到位传感器（如 `atEntry`、`atExit`、`posAtLimit`）与双限位冲突（`limit0 AND limit90`），禁止出现“声明了限位引脚却不判读”的悬空引脚。
+
+---
+
+## 7. 黄金功能块资产库（15 个标准 FB/FC + 15 个 UDT_HMI + Factory I/O 映射）速查索引
+
+> 详细接口定义、UDT 字段明细、物理资产绝对路径与 Factory I/O 引脚映射请查阅完整蓝图文档：[`references/golden-standard-blocks.md`](references/golden-standard-blocks.md)。
+> 所有资产均在真实 Siemens TIA Portal V20 + S7-1500 环境完成编译验证（`0 Error, 0 Warning`），并通过 9 大类净室故障注入验证。
+
+### 7.1 Part A：通用工控底层黄金标准块（8 个）
+| 编号 | 功能块名称 | 类型 | 配套 UDT (`VAR_IN_OUT.ioHmi`) | 工艺核心功能 | 对应蓝图章节 |
+| :---: | :--- | :---: | :--- | :--- | :---: |
+| **A01** | `FC_AnalogScaleAlarm` | FC | `UDT_HMI_AnalogScale` | 模拟量线性定标、工程量换算、HH/H/L/LL 四限报警与断线溢出检测 | [查看 A01](references/golden-standard-blocks.md#a01--fc_analogscalealarm-模拟量线性定标与四限报警) |
+| **A02** | `FB_LowPassFilter` | FB | `UDT_HMI_LowPassFilter` | 一阶低通惯性数字滤波、平滑系数计算、旁路与冷启动无扰跟踪 | [查看 A02](references/golden-standard-blocks.md#a02--fb_lowpassfilter-一阶低通惯性滤波) |
+| **A03** | `FB_CylinderCtrl` | FB | `UDT_HMI_CylinderCtrl` | 单控/双控气缸驱动、双限位磁簧冲突检测、动作超时报警与手动调试 | [查看 A03](references/golden-standard-blocks.md#a03--fb_cylinderctrl-气缸双向到位驱动与超时保护) |
+| **A04** | `FB_MotorRevCtrl` | FB | `UDT_HMI_MotorRevCtrl` | 电机正反转接触器互锁、强制 1.0s 灭弧冷却死区、热过载与接触器反馈监控 | [查看 A04](references/golden-standard-blocks.md#a04--fb_motorrevctrl-电机正反转互锁与灭弧死区保护) |
+| **A05** | `FB_RingFifo` | FB | `UDT_HMI_RingFifo` | 32 深度先进先出环形队列、入队出队原子操作、满溢出/空下溢保护 | [查看 A05](references/golden-standard-blocks.md#a05--fb_ringfifo-环形-fifo-队列管理) |
+| **A06** | `FC_ButtonDebounceToggle` | FC | `UDT_HMI_ButtonDebounce` | 按钮毫秒级防抖滤波、双边沿单脉冲提取及单键启停双稳态翻转（无状态 FC+UDT 模式） | [查看 A06](references/golden-standard-blocks.md#a06--fc_buttondebouncetoggle-按钮防抖与单键启停翻转) |
+| **A07** | `FB_ModbusPoller` | FB | `UDT_HMI_ModbusPoller` | 多从站轮询状态调度器、应答超时重试、自动隔离掉线站防死锁 | [查看 A07](references/golden-standard-blocks.md#a07--fb_modbuspoller-modbus-多从站轮询调度器) |
+| **A08** | `FB_DualEStopInterlock` | FB | `UDT_HMI_DualEStop` | 双通道急停回路差异超时（200ms）粘连监控、EDM 常闭触点前置校验与受控复位 | [查看 A08](references/golden-standard-blocks.md#a08--fb_dualestopinterlock-双回路急停与-edm-反馈监控) |
+
+### 7.2 Part B：Factory I/O 经典场景顺控黄金块（7 个）
+| 编号 | 功能块名称 | 类型 | 配套 UDT (`VAR_IN_OUT.ioHmi`) | 适配 Factory I/O 官方标准场景 | 对应蓝图章节 |
+| :---: | :--- | :---: | :--- | :--- | :---: |
+| **B01** | `FB_FIO_SortingByHeight` | FB | `UDT_HMI_FIO_SortingByHeight` | *Sorting by Height (Basic / Advanced)* 高低件测高分拣与双推杆顺控 | [查看 B01](references/golden-standard-blocks.md#b01--fb_fio_sortingbyheight-factory-io-高低件分拣) |
+| **B02** | `FB_FIO_PickAndPlace` | FB | `UDT_HMI_FIO_PickAndPlace` | *Pick & Place (Basic)* 两轴 X/Z 气动机械手搬运与真空吸盘步序 | [查看 B02](references/golden-standard-blocks.md#b02--fb_fio_pickandplace-factory-io-两轴气动抓手搬运) |
+| **B03** | `FB_FIO_BufferConveyor` | FB | `UDT_HMI_FIO_BufferConveyor` | *Buffer Station* 三段缓冲传送带防追尾、零压力积放与上/下游联锁 | [查看 B03](references/golden-standard-blocks.md#b03--fb_fio_bufferconveyor-factory-io-三段积放缓冲带) |
+| **B04** | `FB_FIO_Turntable` | FB | `UDT_HMI_FIO_Turntable` | *Sorting Station with Turntable* 90° 分流转盘、预备步进料与双限位互锁 | [查看 B04](references/golden-standard-blocks.md#b04--fb_fio_turntable-factory-io-90-旋转转盘) |
+| **B05** | `FB_FIO_AutomatedWarehouse` | FB | `UDT_HMI_FIO_Warehouse` | *Automated Warehouse* 54 库位立体仓库堆垛机取放料、PLCopen Execute 顺控 | [查看 B05](references/golden-standard-blocks.md#b05--fb_fio_automatedwarehouse-factory-io-立体仓库堆垛机) |
+| **B06** | `FB_FIO_TankLevelPID` | FB | `UDT_HMI_FIO_TankLevelPID` | *Level Control* 水箱模拟量液位进水/排水比例阀分程闭环 PID 与手自动无扰切换 | [查看 B06](references/golden-standard-blocks.md#b06--fb_fio_tanklevelpid-factory-io-水箱液位比例-pid) |
+| **B07** | `FB_FIO_Assembler` | FB | `UDT_HMI_FIO_Assembler` | *Assembler (Basic)* 双工位底座/盖板气动夹紧压装顺控、挡料销闭环防撞 | [查看 B07](references/golden-standard-blocks.md#b07--fb_fio_assembler-factory-io-双工位装配站) |

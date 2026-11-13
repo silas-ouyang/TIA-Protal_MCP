@@ -5,7 +5,7 @@
       config:
         serverName: tia
         transport: stdio
-        command: 'D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\runtime\\node.exe'
-        args: ['D:\\TIA_MCP\\delivery\\TIA-MCP-Gateway-D-v1.4.3\\gateway\\gateway.js']
+        command: 'D:\TIA_MCP\delivery\TIA-MCP-Gateway-D-v1.4.3\gateway\runtime\node.exe'
+        args: ['D:\TIA_MCP\delivery\TIA-MCP-Gateway-D-v1.4.3\gateway\gateway.js']
         toolCallTimeoutMs: 1800000
         failOnStartupError: false

@@ -1,0 +1,120 @@
+﻿FUNCTION_BLOCK "FB_LowPassFilter"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      enable : Bool;   // 滤波功能使能
+      rawValue : Real;   // 当前周期原始采样值
+      alpha : Real;   // 默认滤波系数 (0.01..1.0)，当 ioHmi.rAlpha <= 0 时生效
+      reset : Bool;   // 复位并立即将输出同步到当前输入
+   END_VAR
+
+   VAR_OUTPUT 
+      filteredValue : Real;   // 一阶低通滤波输出值
+      valid : Bool;   // 输出数据有效
+      error : Bool;   // 参数错误标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_LowPassFilter";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statPrevOut : Real;   // 上一周期滤波输出值
+      statInitialized : Bool;   // 冷启动已初始化标志
+   END_VAR
+
+   VAR_TEMP 
+      tempEffAlpha : Real;
+      tempInClamped : Real;
+      tempDiff : Real;
+      tempError : Bool;
+      tempStatus : Word;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_OK : Word := 16#0000;
+      STATUS_NO_CALL : Word := 16#7000;
+      ERR_ALPHA_RANGE : Word := 16#8200;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempEffAlpha := 0.0;
+    #tempInClamped := 0.0;
+    #tempDiff := 0.0;
+    #tempError := FALSE;
+    #tempStatus := #STATUS_OK;
+
+    // 1. 未使能处理
+    IF NOT #enable THEN
+        #statInitialized := FALSE;
+        #statPrevOut := #rawValue;
+        #tempError := FALSE;
+        #tempStatus := #STATUS_NO_CALL;
+
+        #ioHmi.rRawInput := #rawValue;
+        #ioHmi.rFilteredOutput := #rawValue;
+        #ioHmi.bInitialized := FALSE;
+        #ioHmi.bError := FALSE;
+        #ioHmi.wStatus := #STATUS_NO_CALL;
+
+        #filteredValue := #rawValue;
+        #valid := FALSE;
+        #error := FALSE;
+        #status := #STATUS_NO_CALL;
+        RETURN;
+    END_IF;
+
+    // 2. 选取有效滤波系数并校验
+    IF #ioHmi.rAlpha > 0.0 THEN
+        #tempEffAlpha := #ioHmi.rAlpha;
+    ELSE
+        #tempEffAlpha := #alpha;
+    END_IF;
+
+    IF (#tempEffAlpha <= 0.0) OR (#tempEffAlpha > 1.0) THEN
+        #tempError := TRUE;
+        #tempStatus := #ERR_ALPHA_RANGE;
+        #tempEffAlpha := 1.0;
+    ELSE
+        #tempError := FALSE;
+        #tempStatus := #STATUS_OK;
+    END_IF;
+
+    // 3. 冷启动或复位
+    IF #reset OR #ioHmi.bResetCmd OR (NOT #statInitialized) THEN
+        #statPrevOut := #rawValue;
+        #statInitialized := TRUE;
+    // 4. 滤波运算与旁路
+    ELSIF #ioHmi.bBypassFilter THEN
+        #statPrevOut := #rawValue;
+    ELSE
+        #tempDiff := #rawValue - #statPrevOut;
+        IF #ioHmi.rMaxDeltaPerScan > 0.0 THEN
+            IF #tempDiff > #ioHmi.rMaxDeltaPerScan THEN
+                #tempDiff := #ioHmi.rMaxDeltaPerScan;
+            ELSIF #tempDiff < -#ioHmi.rMaxDeltaPerScan THEN
+                #tempDiff := -#ioHmi.rMaxDeltaPerScan;
+            END_IF;
+        END_IF;
+        #statPrevOut := #statPrevOut + #tempEffAlpha * #tempDiff;
+    END_IF;
+
+    // 5. 清除 HMI 复位命令并同步状态
+    IF #ioHmi.bResetCmd THEN
+        #ioHmi.bResetCmd := FALSE;
+    END_IF;
+
+    #ioHmi.rRawInput := #rawValue;
+    #ioHmi.rFilteredOutput := #statPrevOut;
+    #ioHmi.bInitialized := #statInitialized;
+    #ioHmi.bError := #tempError;
+    #ioHmi.wStatus := #tempStatus;
+
+    // 输出集中写入 (DA008)
+    #filteredValue := #statPrevOut;
+    #valid := TRUE;
+    #error := #tempError;
+    #status := #tempStatus;
+END_FUNCTION_BLOCK

@@ -1,0 +1,27 @@
+====================================================================
+TIA MCP 网关 D - 生成的配置模板说明
+====================================================================
+
+所有模板中的 node.exe 与 gateway.js 路径均已按当前解压目录自动填好。
+建议优先运行：安装.bat（仅自动配置本机已安装的客户端，改前自动备份）。
+如需强制为尚未建文件的某个客户端生成配置，可执行：
+  gateway\runtime\node.exe install.js --host <宿主id>
+
+各模板文件与目标路径对照：
+- antigravity-mcp_config.json  -> Antigravity (antigravity): %USERPROFILE%\.gemini\config\mcp_config.json
+- gemini-cli-settings.json     -> Gemini CLI (gemini-cli): %USERPROFILE%\.gemini\settings.json
+- claude-desktop.json          -> Claude Desktop (claude-desktop): %APPDATA%\Claude\claude_desktop_config.json
+- claude-code.json             -> Claude Code (claude-code): %USERPROFILE%\.claude.json
+- cursor-mcp.json              -> Cursor (cursor): %USERPROFILE%\.cursor\mcp.json
+- vscode-mcp.json              -> VS Code (vscode): %APPDATA%\Code\User\mcp.json
+- codex-config.toml            -> Codex (codex): %USERPROFILE%\.codex\config.toml
+- workbuddy-mcp.json           -> WorkBuddy (workbuddy): %USERPROFILE%\.workbuddy-ai\mcp.json
+- opencode.json                -> opencode (opencode): %USERPROFILE%\.config\opencode\opencode.json（或 %XDG_CONFIG_HOME%\opencode\opencode.json）
+- dsh-cordis.patch.yml         -> DeepSeek Harness (dsh): %USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml
+
+注意事项：
+1. 合并时请保留目标文件内原有的其他 MCP 服务器，仅合入 tia-gateway（opencode 为 tia）。
+2. WorkBuddy 首次启用需在界面「专家技能连接器 -> 自定义连接器 -> tia-gateway」点「信任」。
+3. Antigravity 请确认写入 .gemini\config\mcp_config.json（不要误放入 Gemini CLI 的 settings.json）。
+4. Codex 使用单引号 TOML 字面量与 startup_timeout_sec = 120，避免启动博途超时被判定崩溃。
+5. 首次连接 TIA Portal 会弹出 Siemens Openness 授权窗口，必须人工点击「是，全部接受」。

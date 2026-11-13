@@ -1,0 +1,104 @@
+﻿FUNCTION "FC_ButtonDebounceToggle" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      rawButton : Bool;   // 现场物理按钮原始输入
+      eStopOk : Bool;   // 急停正常信号（FALSE 时强制复位翻转输出）
+      reset : Bool;   // 外部强制复位
+      scanCycleMs : Int;   // 当前调用周期毫秒数（如 10ms，<=0 时默认按 10ms 计）
+   END_VAR
+
+   VAR_OUTPUT 
+      debouncedOut : Bool;   // 防抖后的稳定按钮电平
+      risingPulse : Bool;   // 防抖后单周期上升沿脉冲
+      fallingPulse : Bool;   // 防抖后单周期下降沿脉冲
+      toggleState : Bool;   // 单键启停双稳态输出
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_ButtonDebounce";   // HMI交互与跨周期状态保持结构体
+   END_VAR
+
+   VAR_TEMP 
+      tempStepMs : DInt;
+      tempTargetMs : DInt;
+      tempRise : Bool;
+      tempFall : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      DEFAULT_DEBOUNCE_MS : DInt := 50;
+      STATUS_OK : Word := 16#0000;
+      ERR_ESTOP : Word := 16#8401;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempStepMs := 0;
+    #tempTargetMs := 0;
+    #tempRise := FALSE;
+    #tempFall := FALSE;
+
+    // 周期步长计算
+    IF #scanCycleMs <= 0 THEN
+        #tempStepMs := 10;
+    ELSE
+        #tempStepMs := INT_TO_DINT(#scanCycleMs);
+    END_IF;
+
+    // 防抖目标时间计算
+    IF #ioHmi.tDebounceTime > T#0s THEN
+        #tempTargetMs := TIME_TO_DINT(#ioHmi.tDebounceTime);
+    ELSE
+        #tempTargetMs := #DEFAULT_DEBOUNCE_MS;
+    END_IF;
+
+    // 2. 防抖累计与更新
+    IF #rawButton <> #ioHmi.bDebouncedState THEN
+        #ioHmi.tElapsedMs := #ioHmi.tElapsedMs + #tempStepMs;
+        IF #ioHmi.tElapsedMs >= #tempTargetMs THEN
+            #ioHmi.bDebouncedState := #rawButton;
+            #ioHmi.tElapsedMs := 0;
+        END_IF;
+    ELSE
+        #ioHmi.tElapsedMs := 0;
+    END_IF;
+
+    // 3. 边沿检测
+    #tempRise := #ioHmi.bDebouncedState AND (NOT #ioHmi.bPrevDebounced);
+    #tempFall := (NOT #ioHmi.bDebouncedState) AND #ioHmi.bPrevDebounced;
+    #ioHmi.bPrevDebounced := #ioHmi.bDebouncedState;
+
+    // 4. 双稳态翻转优先级处理
+    IF (NOT #eStopOk) OR #reset OR #ioHmi.bHmiForceOff THEN
+        #ioHmi.bToggleOut := FALSE;
+        IF NOT #eStopOk THEN
+            #ioHmi.wStatus := #ERR_ESTOP;
+        ELSE
+            #ioHmi.wStatus := #STATUS_OK;
+        END_IF;
+    ELSIF #ioHmi.bHmiForceOn THEN
+        #ioHmi.bToggleOut := TRUE;
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSIF #tempRise OR #ioHmi.bHmiToggleCmd THEN
+        #ioHmi.bToggleOut := NOT #ioHmi.bToggleOut;
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSE
+        IF #eStopOk THEN
+            #ioHmi.wStatus := #STATUS_OK;
+        END_IF;
+    END_IF;
+
+    // 5. 清除单次触发软命令
+    #ioHmi.bHmiToggleCmd := FALSE;
+    #ioHmi.bHmiForceOn := FALSE;
+    #ioHmi.bHmiForceOff := FALSE;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #debouncedOut := #ioHmi.bDebouncedState;
+    #risingPulse := #tempRise;
+    #fallingPulse := #tempFall;
+    #toggleState := #ioHmi.bToggleOut;
+    #status := #ioHmi.wStatus;
+END_FUNCTION

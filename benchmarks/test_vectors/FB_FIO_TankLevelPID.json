@@ -1,0 +1,1211 @@
+{
+  "blockId": "B06",
+  "blockName": "FB_FIO_TankLevelPID",
+  "udtName": "UDT_HMI_FIO_TankLevelPID",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "enable": false,
+      "levelMeterV": 0,
+      "flowMeterV": 0,
+      "setpointCm": 150,
+      "dtSec": 0.1,
+      "reset": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bResetCmd": false,
+      "rSetpoint": 150,
+      "rKp": 2,
+      "rKi": 0.2,
+      "rKd": 0.05,
+      "rDeadband": 0.5,
+      "rManualFillValve": 0,
+      "rManualDischargeValve": 0,
+      "rCurrentLevel": 0,
+      "rControlError": 150,
+      "rFillValveOut": 0,
+      "rDischargeValveOut": 0,
+      "bHighLevelAlarm": false,
+      "bLowLevelAlarm": true,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statIntegral": 0,
+      "statPrevError": 0,
+      "statManualOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_PowerOnInit",
+      "category": "POWER_ON_INIT",
+      "description": "上电初始状态：急停正常，未使能 (enable=FALSE)，进水阀与排水阀全闭 (0.0V)，报低液位报警，状态码 16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "PLC上电首周期，控制器处于待机，两比例阀保持0V安全切断",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "enable": false,
+            "levelMeterV": 0,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 0,
+            "rControlError": 150,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 0,
+            "rControlError": 150,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 0,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": true,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 0,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 0,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NormalFlow_SplitRangePID",
+      "category": "NORMAL_FLOW",
+      "description": "正常工艺流程：双极性分程控制（Split-Range PID），进水注满、死区内平衡调节、降设定值排水泄流",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "使能控制器 (enable=TRUE)，实际液位 60cm (2.0V)，设定值 150cm，正向大偏差驱动进水阀全开 (10.0V)，排水阀关 (0.0V)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 2,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 0,
+            "rControlError": 150,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 0,
+            "rControlError": 150,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": true,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 10,
+            "dischargeValveV": 0,
+            "levelCm": 60,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 60,
+            "rControlError": 90,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 60,
+            "rControlError": 90,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "液位上升至 144cm (4.8V)，小偏差 (e=+6cm)，进水阀开度比例节流至约 3.0V，排水阀依然为 0.0V",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 2000,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 4.8,
+            "flowMeterV": 1.5,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 60,
+            "rControlError": 90,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 60,
+            "rControlError": 90,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 10,
+            "levelCm": 144,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 144,
+            "rControlError": 6,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 10,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 144,
+            "rControlError": 6,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 10,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "液位到达设定值 150cm (5.0V)，进入死区 (|e| <= 0.5cm)，稳态微调保持",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 5,
+            "flowMeterV": 1.5,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 144,
+            "rControlError": 6,
+            "rFillValveOut": 3,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 144,
+            "rControlError": 6,
+            "rFillValveOut": 3,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 1.08,
+            "levelCm": 150,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 150,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 1.08,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 150,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 1.08,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "设定值骤降至 80cm，液位为 150cm，负向大偏差 (e=-70cm)，分程自动切换：进水阀关死 (0.0V)，排水阀全开 (10.0V) 泄洪",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 5000,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 5,
+            "flowMeterV": 5,
+            "setpointCm": 80,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 80,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 150,
+            "rControlError": 0,
+            "rFillValveOut": 1.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 80,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 150,
+            "rControlError": 0,
+            "rFillValveOut": 1.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 10,
+            "levelCm": 150,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 150,
+            "rControlError": -70,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 10,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 150,
+            "rControlError": -70,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 10,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_EStopDuringMotion",
+      "category": "ESTOP_DURING_MOTION",
+      "description": "动作中急停：调节阀开度调节过程中突切急停 eStopOk=FALSE，两阀立即关死，清空积分项，报 16#8402",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "进水阀正在以 8.0V 注水时急停按下，进水阀与排水阀强制降为 0.0V，status=16#8402",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 1500,
+          "inputs": {
+            "eStopOk": false,
+            "enable": true,
+            "levelMeterV": 3,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 8,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 8,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 90,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ResetWhileEStopActive",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时复位：急停下尝试复位被拦截；急停解除后复位成功清除故障",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopOk=FALSE 时输入 reset 脉冲，系统保持故障且输出锁定 0V",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 2000,
+          "inputs": {
+            "eStopOk": false,
+            "enable": true,
+            "levelMeterV": 3,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": true,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": true,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 90,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "急停恢复 (eStopOk=TRUE)，再次输入 reset 脉冲，故障清除，恢复闭环控制",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 3000,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 3,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": true,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": true,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "fillValveV": 10,
+            "dischargeValveV": 0,
+            "levelCm": 90,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SensorConflictOrStuck_HighLevelOverflowSafety",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "高液位防溢流硬联锁保护：实际液位达到 288cm (>=285cm)，进水阀被强制关死 (0.0V)，报 16#8401",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "液位计电压输入 9.6V (288.0cm)，触发高高液位溢流保护，进水阀硬切断至 0.0V，置位 highLevelAlarm 与 16#8401",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 9.6,
+            "flowMeterV": 0,
+            "setpointCm": 290,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 290,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 150,
+            "rControlError": 140,
+            "rFillValveOut": 5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 290,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 150,
+            "rControlError": 140,
+            "rFillValveOut": 5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 288,
+            "highLevelAlarm": true,
+            "lowLevelAlarm": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 288,
+            "rControlError": 2,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 288,
+            "rControlError": 2,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ActionTimeout_DtInvalid",
+      "category": "ACTION_TIMEOUT",
+      "description": "采样周期参数非法除零校验 (SE001)：dtSec <= 0.0 时报 ERR_DT_INVALID (16#8200) 并安全关闭所有阀门",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "传入控制周期 dtSec = 0.0，触发数学除零保护，两阀安全置零，报 16#8200",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 3,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 90,
+            "rControlError": 60,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 90,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": true,
+            "status": "16#8200"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8200"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 90,
+            "rControlError": 0,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8200"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_ModeSwitchTransient_BumplessTransfer",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动无扰切换（Bumpless Transfer）：手动切自动时，statIntegral 初始化为当前手动开度差，防止阀门突跳",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "处于手动模式 (bManualMode=TRUE)，给定进水阀手动开度 6.5V，排水阀 0.0V",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 4,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 6.5,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 6.5,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 6.5,
+            "dischargeValveV": 0,
+            "levelCm": 120,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 6.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 6.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切回自动闭环 (bManualMode=FALSE)，无扰切换初始化积分器为 6.5V，开度平滑过渡无阶跃震荡",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 200,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 4,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 6.5,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 6.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 6.5,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 6.5,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 10,
+            "dischargeValveV": 0,
+            "levelCm": 120,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 120,
+            "rControlError": 30,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_CommandConflict",
+      "category": "COMMAND_CONFLICT",
+      "description": "手动模式高液位安全覆盖：即使处于手动模式，若液位 >= 285cm，进水阀依然被安全联锁强制关死",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "手动模式下误开进水阀至 10.0V，但液位已达 291cm (9.7V)，安全联锁强行切断 fillValveV=0.0V",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 9.7,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 10,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 291,
+            "rControlError": -141,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 10,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 291,
+            "rControlError": -141,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "fillValveV": 0,
+            "dischargeValveV": 0,
+            "levelCm": 291,
+            "highLevelAlarm": true,
+            "lowLevelAlarm": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 291,
+            "rControlError": -141,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 291,
+            "rControlError": -141,
+            "rFillValveOut": 0,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": true,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CaseElseIllegalState",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "抗积分饱和（Anti-Windup）限幅校验：积分累加项被钳位在 [-10.0, +10.0]，防止执行机构深饱和退饱和滞后",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "大偏差持续长时间，积分器输出达到上限 +10.0V 并停止累加，处于饱和边界保护",
+          "scanCycleOrDuration": "10 scan cycles",
+          "elapsedTimeMs": 1000,
+          "inputs": {
+            "eStopOk": true,
+            "enable": true,
+            "levelMeterV": 1,
+            "flowMeterV": 0,
+            "setpointCm": 150,
+            "dtSec": 0.1,
+            "reset": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 30,
+            "rControlError": 120,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bResetCmd": false,
+            "rSetpoint": 150,
+            "rKp": 2,
+            "rKi": 0.2,
+            "rKd": 0.05,
+            "rDeadband": 0.5,
+            "rManualFillValve": 0,
+            "rManualDischargeValve": 0,
+            "rCurrentLevel": 30,
+            "rControlError": 120,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "fillValveV": 10,
+            "dischargeValveV": 0,
+            "levelCm": 30,
+            "highLevelAlarm": false,
+            "lowLevelAlarm": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "rCurrentLevel": 30,
+            "rControlError": 120,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rCurrentLevel": 30,
+            "rControlError": 120,
+            "rFillValveOut": 10,
+            "rDischargeValveOut": 0,
+            "bHighLevelAlarm": false,
+            "bLowLevelAlarm": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

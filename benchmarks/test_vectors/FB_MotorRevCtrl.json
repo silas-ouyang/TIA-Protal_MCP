@@ -1,0 +1,949 @@
+{
+  "blockId": "A04",
+  "blockName": "FB_MotorRevCtrl",
+  "udtName": "UDT_HMI_MotorRevCtrl",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "thermalOk": true,
+      "interlockOk": true,
+      "autoMode": true,
+      "autoFwdCmd": false,
+      "autoRevCmd": false,
+      "fbkFwd": false,
+      "fbkRev": false,
+      "useFeedback": true,
+      "reset": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bManualFwdCmd": false,
+      "bManualRevCmd": false,
+      "bManualStopCmd": false,
+      "bResetCmd": false,
+      "tFeedbackTimeout": "T#2s",
+      "tReverseDeadband": "T#1s",
+      "bRunningFwd": false,
+      "bRunningRev": false,
+      "bFault": false,
+      "wStatus": "16#0000"
+    },
+    "internalState": {
+      "statState": 0,
+      "statTargetDir": 0,
+      "statError": false,
+      "statStatus": "16#0000"
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：停机待机STATE_IDLE(0)，无动作输出，指示灯熄灭，status=16#0000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "初始待机状态，KM1/KM2输出断开，running=FALSE，无故障",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：正转启动 -> 动态换向死区等待(STATE_DEADBAND T#1s) -> 反转启动 -> 停机完整时序",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "autoFwdCmd启动正转，contactorFwd=TRUE，fbkFwd跟随闭合，running=TRUE",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": false,
+            "fbkFwd": true,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": true,
+            "contactorRev": false,
+            "running": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "正转中直接发autoRevCmd，进入STATE_DEADBAND(30)，立即断开contactorFwd，running=FALSE",
+          "scanCycleOrDuration": "100ms",
+          "elapsedTimeMs": 150,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": true,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "死区时间满(1100ms >= T#1s)且fbkFwd/fbkRev均断开，允许反转闭合，contactorRev=TRUE，进入STATE_REV(20)",
+          "scanCycleOrDuration": "1100ms",
+          "elapsedTimeMs": 1250,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": true,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": true,
+            "running": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "autoRevCmd撤销，电机正常停机回到STATE_IDLE(0)",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 1300,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停：正转运行中eStopOk降为FALSE，接触器线圈立即0ms硬切断，锁存ERR_ESTOP(16#8403)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "急停激活，contactorFwd立即硬切断，状态机跳入STATE_FAULT(99)，报16#8403",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1310,
+          "inputs": {
+            "eStopOk": false,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": false,
+            "fbkFwd": true,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时尝试复位：eStopOk仍为FALSE，施加外部reset=TRUE与HMI bResetCmd=TRUE，禁止复位",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "急停未恢复时复位被硬拦截，输出全关，保持STATE_FAULT(99)与16#8403",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1320,
+          "inputs": {
+            "eStopOk": false,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": true,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": true,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8403"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "接触器触点粘连卡死故障：已停机断电但fbkFwd保持导通超过T#2s，锁存ERR_FBK_TIMEOUT(16#8402)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "无启动命令且线圈已断开，fbkFwd触点粘连导通2100ms，触发反馈故障16#8402",
+          "scanCycleOrDuration": "2100ms",
+          "elapsedTimeMs": 3420,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": false,
+            "fbkFwd": true,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "接触器吸合超时保护：启动命令已下发但fbkFwd在2s内未闭合，触发ERR_FBK_TIMEOUT(16#8402)并切断输出",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "下发autoFwdCmd，吸合反馈fbkFwd超时2100ms未到达，置位16#8402并切断输出",
+          "scanCycleOrDuration": "2100ms",
+          "elapsedTimeMs": 5520,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：自动正转中切入手动模式，自动信号被屏蔽，由HMI手动点动正转接管",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "bManualMode=TRUE切入手动，autoFwdCmd失效，按bManualFwdCmd驱动正转输出",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 5570,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": false,
+            "fbkFwd": true,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bManualFwdCmd": true,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bManualFwdCmd": true,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": true,
+            "contactorRev": false,
+            "running": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": true,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "命令冲突互锁消解：正转与反转指令同时为TRUE时，视为停机请求，禁止任何接触器闭合",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "autoFwdCmd与autoRevCmd同时置TRUE，逻辑判断为停机，KM1与KM2同时断开",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 5620,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": true,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "热继电器过载故障(16#8401)后复位恢复：thermalOk恢复TRUE并触发reset脉冲，安全复位回STATE_IDLE(0)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "thermalOk=FALSE热继电器跳闸，进入STATE_FAULT(99)，报16#8401",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 5630,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": false,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": true,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": false,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "热继电器复位(thermalOk=TRUE)，施加reset=TRUE，状态机从故障态安全恢复到STATE_IDLE(0)",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 5640,
+          "inputs": {
+            "eStopOk": true,
+            "thermalOk": true,
+            "interlockOk": true,
+            "autoMode": true,
+            "autoFwdCmd": false,
+            "autoRevCmd": false,
+            "fbkFwd": false,
+            "fbkRev": false,
+            "useFeedback": true,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": true,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bManualFwdCmd": false,
+            "bManualRevCmd": false,
+            "bManualStopCmd": false,
+            "bResetCmd": true,
+            "tFeedbackTimeout": "T#2s",
+            "tReverseDeadband": "T#1s",
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "contactorFwd": false,
+            "contactorRev": false,
+            "running": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "bRunningFwd": false,
+            "bRunningRev": false,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

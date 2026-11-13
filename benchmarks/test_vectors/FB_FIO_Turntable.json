@@ -1,0 +1,1457 @@
+{
+  "blockId": "B04",
+  "blockName": "FB_FIO_Turntable",
+  "udtName": "UDT_HMI_FIO_Turntable",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "startBtn": false,
+      "stopBtn": true,
+      "resetBtn": false,
+      "routeSelect90": false,
+      "atEntry": false,
+      "limit0": true,
+      "limit90": false,
+      "frontLimit": false,
+      "backLimit": false,
+      "atExit0": false,
+      "atExit90": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bStartCmd": false,
+      "bStopCmd": false,
+      "bResetCmd": false,
+      "bRouteTo90Deg": false,
+      "bManualTurn": false,
+      "bManualRollPlus": false,
+      "tActionTimeout": "T#5s",
+      "iCurrentStep": 0,
+      "diRoutedCount": 0,
+      "bFault": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statStep": 0,
+      "statRunning": false,
+      "statStopReq": false,
+      "statStartOld": false,
+      "statResetOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_PowerOnInit",
+      "category": "POWER_ON_INIT",
+      "description": "上电初始状态：急停正常，转盘位于0度限位，全部执行器输出关闭，处于待机 STEP_IDLE (0)，状态码 16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "PLC上电首周期扫描，确认转盘与滚筒电机处于断开状态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NormalFlow_StraightAnd90Routing",
+      "category": "NORMAL_FLOW",
+      "description": "正常工艺流程：先测试0度直通放行，再测试90度旋转分流放行与回转，累计计数+2",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "启动系统：startBtn 上升沿触发，确认 limit0=TRUE，转入 STEP_WAIT_ENTRY (20) 等待进盘",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "直通托盘到达入口 (atEntry=TRUE, routeSelect90=FALSE)，进入 STEP_LOAD_ROLL (30)，开入口皮带与台面滚筒正转",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 1000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": true,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 20,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 20,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": true,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 30,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 30,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "托盘进入转盘内部到位 (frontLimit=TRUE)，因直通路由转入 STEP_UNLOAD_0 (50)，启动直通出口皮带",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 2500,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": true,
+            "backLimit": true,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 30,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 30,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": true,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": true,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 50,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 50,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "直通托盘到达0度出口传感器 (atExit0=TRUE) 且转盘清空，计数+1，返回 STEP_WAIT_ENTRY (20) 启动入口皮带待命",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": true,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 50,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 50,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "分流托盘到达入口 (atEntry=TRUE, routeSelect90=TRUE)，进入 STEP_LOAD_ROLL (30) 进料",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 5000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": true,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 20,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 20,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": true,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 30,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 30,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 6,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "托盘进盘到位 (frontLimit=TRUE)，因分流路由转入 STEP_ROTATE_90 (40)，驱动 turnTable=TRUE，且防撞联锁停滚筒(rollPlus=FALSE)",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 6500,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": true,
+            "backLimit": true,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 30,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 30,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": true,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 7,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "转盘旋转90度到位 (limit90=TRUE)，进入 STEP_UNLOAD_90 (60)，启动 exitConveyor90 与台面滚筒 rollPlus 出料",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 8000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": true,
+            "frontLimit": true,
+            "backLimit": true,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": true,
+            "turnTable": true,
+            "rollPlus": true,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 60,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 60,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 8,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "托盘离开90度出口 (frontLimit=FALSE)，进入 STEP_RETURN_0 (70)，turnTable=FALSE 开始回转0度原位，滚筒关闭",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 9500,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 60,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 60,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 70,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 70,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 9,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "转盘安全返回0度原位 (limit0=TRUE)，累计分流计数+1，返回 STEP_WAIT_ENTRY (20) 等待下一工件",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 11000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 70,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 70,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": true,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 20,
+            "diRoutedCount": 2,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_EStopDuringMotion",
+      "category": "ESTOP_DURING_MOTION",
+      "description": "动作中急停：转盘旋转过程中 (STEP_ROTATE_90 40) 切断急停 eStopOk=FALSE，转盘与滚筒立即全切并报 16#8402",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "转盘旋转中遭遇急停，硬切断所有输出，进入 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 7000,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": true,
+            "backLimit": true,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ResetWhileEStopActive",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时复位：急停下尝试复位被拦截；急停解除后复位成功回 STEP_IDLE (0)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopOk=FALSE 时按下 resetBtn，系统保持故障且输出锁定",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 7500,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "释放复位按钮 (resetBtn=FALSE, bResetCmd=FALSE) 解除边沿锁存，仍保持 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 7600,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "恢复 eStopOk=TRUE 并再次复位，转入待机状态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 8500,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 99,
+            "diRoutedCount": 1,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 1,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SensorConflictOrStuck",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "双到位传感器冲突：限位 limit0 与 limit90 同时为 TRUE（机械开关粘连），系统阻断动作防机械破坏",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "0度与90度限位同时闭合冲突注入，系统拒绝转盘动作并保持故障保护",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": true,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 0,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 0,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ActionTimeout",
+      "category": "ACTION_TIMEOUT",
+      "description": "旋转动作超时：在 STEP_ROTATE_90 (40) 中超过 tActionTimeout (5s) 未达到 limit90，判定卡阻跳 STEP_FAULT (99)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "turnTable 驱动旋转，但 limit90 超过 5000ms 未到达，instStepWatchdog 超时报警 16#8401",
+          "scanCycleOrDuration": "5000ms",
+          "elapsedTimeMs": 5100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": true,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": true,
+            "backLimit": true,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": true,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 40,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 0,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diRoutedCount": 0,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_ModeSwitchTransient",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换与机械防撞联锁：转盘在非0非90中间态时，严禁手动开启 rollPlus 滚筒驱动",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "转盘处于中间悬空态 (limit0=FALSE, limit90=FALSE)，手动驱动滚筒 (bManualRollPlus=TRUE)，防撞硬联锁阻止 rollPlus 输出",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": false,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": true,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": true,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_CommandConflict",
+      "category": "COMMAND_CONFLICT",
+      "description": "滚筒正反转命令冲突：手动模式下同时触发 bManualRollPlus 与反转命令，系统互锁保护",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "同时触发正反转指令，输出互锁，rollPlus 与 rollMinus 均不得动作",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": true,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": true,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": true,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CaseElseIllegalState",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "非法状态号捕获：注入 statStep = 999，CASE ELSE 捕获并强制退回安全停机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "注入非法步号 999，转盘自愈，切断转盘旋转与全部滚筒电机输出",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "routeSelect90": false,
+            "atEntry": false,
+            "limit0": true,
+            "limit90": false,
+            "frontLimit": false,
+            "backLimit": false,
+            "atExit0": false,
+            "atExit90": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 999,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bRouteTo90Deg": false,
+            "bManualTurn": false,
+            "bManualRollPlus": false,
+            "tActionTimeout": "T#5s",
+            "iCurrentStep": 999,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "entryConveyor": false,
+            "exitConveyor0": false,
+            "exitConveyor90": false,
+            "turnTable": false,
+            "rollPlus": false,
+            "rollMinus": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diRoutedCount": 0,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    }
+  ]
+}

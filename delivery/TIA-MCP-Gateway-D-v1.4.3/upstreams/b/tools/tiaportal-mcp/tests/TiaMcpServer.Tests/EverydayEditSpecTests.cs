@@ -85,6 +85,24 @@ namespace TiaMcpServer.Tests
                 "一项都没生效 → 明说没改");
             check(EverydayEditSpec.PartialApplyMessage("SetPlcTag", "tag", "A", "A", true, Array.Empty<string>(), "x").Contains("WAS created"),
                 "新建后写注释失败 → 明说变量已建出来，别再建");
+
+            // ---- IPv4 / 子网掩码校验 ----
+            check(EverydayEditSpec.NormalizeAndValidateIpv4(" 192.168.250.10 ", out var ipErrOk) == "192.168.250.10" && ipErrOk == null,
+                "合法 IPv4 去首尾空白后原样返回");
+            foreach (var badIp in new[] { "", "10", "192.168.1", "192.168.1.256", "192.168.01.10", "0.0.0.0", "255.255.255.255" })
+            {
+                check(EverydayEditSpec.NormalizeAndValidateIpv4(badIp, out var badIpErr) == null && badIpErr != null,
+                    $"非法 IPv4 '{badIp}' 必须被拒");
+            }
+            check(EverydayEditSpec.NormalizeAndValidateSubnetMask("255.255.255.0", out var maskErrOk) == "255.255.255.0" && maskErrOk == null,
+                "255.255.255.0 是合法子网掩码");
+            check(EverydayEditSpec.NormalizeAndValidateSubnetMask("255.255.255.252", out var mask30Err) == "255.255.255.252" && mask30Err == null,
+                "/30 子网掩码合法");
+            foreach (var badMask in new[] { "", "255.0.255.0", "255.255.128.1", "0.0.0.0", "255.255.255.255" })
+            {
+                check(EverydayEditSpec.NormalizeAndValidateSubnetMask(badMask, out var badMaskErr) == null && badMaskErr != null,
+                    $"非连续或无效掩码 '{badMask}' 必须被拒");
+            }
         }
     }
 }

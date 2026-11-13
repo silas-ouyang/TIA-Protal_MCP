@@ -1,0 +1,17 @@
+{
+  "id": "B05",
+  "blockName": "FB_FIO_AutomatedWarehouse",
+  "udtName": "UDT_HMI_FIO_Warehouse",
+  "firstPassSuccess": true,
+  "totalAttempts": 1,
+  "finalStatus": "PASS",
+  "attempts": [
+    {
+      "attempt": 1,
+      "errors": [],
+      "warnings": [],
+      "rootCause": "None",
+      "fixApplied": "None"
+    }
+  ]
+}

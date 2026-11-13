@@ -1,0 +1,138 @@
+﻿// 非安全认证功能，仅用于仿真演示；现场急停必须使用 F-CPU（Safety）或安全继电器硬回路实现。
+FUNCTION_BLOCK "FB_DualEStopInterlock"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopCh1 : Bool;   // 急停回路通道 1（常闭触点，TRUE=正常）
+      eStopCh2 : Bool;   // 急停回路通道 2（常闭触点，TRUE=正常）
+      safetyGateOk : Bool;   // 安全防护门联锁开关（常闭触点，TRUE=门已关好）
+      feedbackLoopOk : Bool;   // 安全继电器/主接触器释放反馈回路（复位前必须为 TRUE）
+      resetButton : Bool;   // 现场安全复位按钮（仅上升沿有效，防卡死）
+   END_VAR
+
+   VAR_OUTPUT 
+      safetyEnableOut : Bool;   // 主安全使能输出（切断或允许全站执行器）
+      resetRequired : Bool;   // 等待复位指示灯输出
+      discrepancyError : Bool;   // 双通道不一致（触点粘连/断线）故障
+      error : Bool;   // 安全未就绪或故障标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_DualEStop";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statSafetyLatched : Bool;   // 安全回路闭合锁存
+      statDiscrepancyFault : Bool;   // 双通道不同步故障锁存
+      statWaitBothZero : Bool;   // 不同步故障后必须两通道同时断开再闭合才可恢复
+      statResetOld : Bool;   // 复位按钮边沿检测
+      instDiscTimer : TON_TIME;   // 双通道不同步计时器
+   END_VAR
+
+   VAR_TEMP 
+      tempDiscTime : Time;
+      tempChannelsXor : Bool;
+      tempChannelsBothOk : Bool;
+      tempResetEdge : Bool;
+      tempResetCmd : Bool;
+      tempStatus : Word;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_SAFE_ACTIVE : Word := 16#0000;
+      STATUS_WAIT_RESET : Word := 16#7001;
+      ERR_ESTOP_PRESSED : Word := 16#8401;
+      ERR_GATE_OPEN : Word := 16#8402;
+      ERR_DISCREPANCY : Word := 16#8403;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempDiscTime := T#0s;
+    #tempChannelsXor := FALSE;
+    #tempChannelsBothOk := FALSE;
+    #tempResetEdge := FALSE;
+    #tempResetCmd := FALSE;
+    #tempStatus := #STATUS_SAFE_ACTIVE;
+
+    // 不同步时间获取
+    IF #ioHmi.tDiscrepancyTime > T#0s THEN
+        #tempDiscTime := #ioHmi.tDiscrepancyTime;
+    ELSE
+        #tempDiscTime := T#200ms;
+    END_IF;
+
+    // 通道状态预判
+    #tempChannelsBothOk := #eStopCh1 AND #eStopCh2;
+    #tempChannelsXor := #eStopCh1 XOR #eStopCh2;
+
+    // 1. 无条件硬切断：任一急停通道断开或安全门打开，立即切断使能
+    // （注：feedbackLoopOk 为外部接触器常闭反馈回路 EDM，仅在复位吸合前校验，吸合运行期间不触发自切）
+    IF (NOT #eStopCh1) OR (NOT #eStopCh2) OR (NOT #safetyGateOk) THEN
+        #statSafetyLatched := FALSE;
+    END_IF;
+
+    // 2. 双通道同步监控：XOR 持续超过不同步时间锁存故障
+    #instDiscTimer(IN := #tempChannelsXor, PT := #tempDiscTime);
+    IF #instDiscTimer.Q THEN
+        #statDiscrepancyFault := TRUE;
+        #statWaitBothZero := TRUE;
+        #statSafetyLatched := FALSE;
+    END_IF;
+
+    // 3. 不同步故障恢复联锁：必须先两通道同时回到 FALSE 解除 statWaitBothZero
+    IF #statWaitBothZero THEN
+        IF (NOT #eStopCh1) AND (NOT #eStopCh2) THEN
+            #statWaitBothZero := FALSE;
+        END_IF;
+    END_IF;
+
+    // 复位触发与边沿检测
+    #tempResetCmd := #resetButton OR #ioHmi.bHmiResetCmd;
+    #tempResetEdge := #tempResetCmd AND (NOT #statResetOld);
+    #statResetOld := #tempResetCmd;
+
+    IF #ioHmi.bHmiResetCmd THEN
+        #ioHmi.bHmiResetCmd := FALSE;
+    END_IF;
+
+    // 当两通道恢复健康且已解除 waitBothZero 时，复位可消除故障锁存
+    IF #tempChannelsBothOk AND (NOT #statWaitBothZero) AND #tempResetEdge THEN
+        #statDiscrepancyFault := FALSE;
+    END_IF;
+
+    // 4. 受控上升沿复位：全部安全条件满足且无不同步故障时置位锁存
+    IF #tempChannelsBothOk AND #safetyGateOk AND #feedbackLoopOk AND 
+       (NOT #statDiscrepancyFault) AND (NOT #statWaitBothZero) AND #tempResetEdge THEN
+        #statSafetyLatched := TRUE;
+    END_IF;
+
+    // 状态码解算
+    IF #statDiscrepancyFault OR #instDiscTimer.Q THEN
+        #tempStatus := #ERR_DISCREPANCY;
+    ELSIF (NOT #eStopCh1) OR (NOT #eStopCh2) THEN
+        #tempStatus := #ERR_ESTOP_PRESSED;
+    ELSIF NOT #safetyGateOk THEN
+        #tempStatus := #ERR_GATE_OPEN;
+    ELSIF NOT #statSafetyLatched THEN
+        #tempStatus := #STATUS_WAIT_RESET;
+    ELSE
+        #tempStatus := #STATUS_SAFE_ACTIVE;
+    END_IF;
+
+    // 同步状态至 ioHmi (使用局部/静态变量，绝不回读 Output)
+    #ioHmi.bSafeToRun := #statSafetyLatched;
+    #ioHmi.bCh1State := #eStopCh1;
+    #ioHmi.bCh2State := #eStopCh2;
+    #ioHmi.bDiscrepancyFault := #statDiscrepancyFault;
+    #ioHmi.bWaitReset := (NOT #statSafetyLatched) AND (NOT #statDiscrepancyFault) AND #tempChannelsBothOk AND #safetyGateOk AND #feedbackLoopOk;
+    #ioHmi.wStatus := #tempStatus;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #safetyEnableOut := #statSafetyLatched;
+    #resetRequired := (NOT #statSafetyLatched) AND (NOT #statDiscrepancyFault) AND #tempChannelsBothOk AND #safetyGateOk AND #feedbackLoopOk;
+    #discrepancyError := #statDiscrepancyFault;
+    #error := #statDiscrepancyFault OR #instDiscTimer.Q OR (NOT #eStopCh1) OR (NOT #eStopCh2) OR (NOT #safetyGateOk);
+    #status := #tempStatus;
+END_FUNCTION_BLOCK

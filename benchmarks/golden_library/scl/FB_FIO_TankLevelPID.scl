@@ -1,0 +1,212 @@
+﻿FUNCTION_BLOCK "FB_FIO_TankLevelPID"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常（FALSE时立即关闭进水阀）
+      enable : Bool;   // 控制器运行使能
+      levelMeterV : Real;   // Factory I/O 液位计电压输入 (0.0..10.0V 对应 0..300cm)
+      flowMeterV : Real;   // 出水流量计电压输入 (0.0..10.0V)
+      setpointCm : Real;   // 外部液位设定值 (0.0..300.0 cm)
+      dtSec : Real;   // 控制周期时间（秒，如 0.1s）
+      reset : Bool;   // 复位积分累计与报警
+   END_VAR
+
+   VAR_OUTPUT 
+      fillValveV : Real;   // 进水比例阀模拟量电压输出 (0.0..10.0V)
+      dischargeValveV : Real;   // 出水比例阀模拟量电压输出 (0.0..10.0V)
+      levelCm : Real;   // 换算后的当前液位高度 (cm)
+      highLevelAlarm : Bool;   // 高液位超限报警 (>= 285.0cm)
+      lowLevelAlarm : Bool;   // 低液位报警 (<= 10.0cm)
+      error : Bool;   // 故障标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_TankLevelPID";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statIntegral : Real;   // PID积分累加项 (-10.0..10.0)
+      statPrevError : Real;   // 上一周期误差值
+      statManualOld : Bool;   // 用于手切自无扰切换检测
+   END_VAR
+
+   VAR_TEMP 
+      tempLevelCm : Real;
+      tempSpCm : Real;
+      tempErr : Real;
+      tempKp : Real;
+      tempKi : Real;
+      tempKd : Real;
+      tempDeriv : Real;
+      tempPidOut : Real;
+      tempFillV : Real;
+      tempDischV : Real;
+      tempHighAlm : Bool;
+      tempLowAlm : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      MAX_LEVEL_CM : Real := 300.0;
+      HIGH_ALARM_CM : Real := 285.0;
+      LOW_ALARM_CM : Real := 10.0;
+      MAX_VALVE_V : Real := 10.0;
+      STATUS_OK : Word := 16#0000;
+      STATUS_IDLE : Word := 16#7000;
+      ERR_DT_INVALID : Word := 16#8200;
+      ERR_OVERFLOW_PROT : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempLevelCm := 0.0;
+    #tempSpCm := 0.0;
+    #tempErr := 0.0;
+    #tempKp := 2.0;
+    #tempKi := 0.2;
+    #tempKd := 0.05;
+    #tempDeriv := 0.0;
+    #tempPidOut := 0.0;
+    #tempFillV := 0.0;
+    #tempDischV := 0.0;
+    #tempHighAlm := FALSE;
+    #tempLowAlm := FALSE;
+
+    // 1. 换算液位
+    #tempLevelCm := #levelMeterV * 30.0;
+    IF #tempLevelCm < 0.0 THEN
+        #tempLevelCm := 0.0;
+    ELSIF #tempLevelCm > #MAX_LEVEL_CM THEN
+        #tempLevelCm := #MAX_LEVEL_CM;
+    END_IF;
+
+    #tempHighAlm := (#tempLevelCm >= #HIGH_ALARM_CM);
+    #tempLowAlm := (#tempLevelCm <= #LOW_ALARM_CM);
+
+    // 复位触发
+    IF #reset OR #ioHmi.bResetCmd THEN
+        #statIntegral := 0.0;
+        #statPrevError := 0.0;
+        #ioHmi.bResetCmd := FALSE;
+    END_IF;
+
+    // 2. 急停、未使能或周期非法检查
+    IF NOT #eStopOk THEN
+        #tempFillV := 0.0;
+        #tempDischV := 0.0;
+        #statIntegral := 0.0;
+        #statPrevError := 0.0;
+        #ioHmi.wStatus := #ERR_ESTOP;
+    ELSIF NOT #enable THEN
+        #tempFillV := 0.0;
+        #tempDischV := 0.0;
+        #statIntegral := 0.0;
+        #statPrevError := 0.0;
+        #ioHmi.wStatus := #STATUS_IDLE;
+    ELSIF #dtSec <= 0.0 THEN
+        // 3. 参数校验：dtSec <= 0.0 时报 ERR_DT_INVALID (16#8200) 并安全关闭阀门
+        #tempFillV := 0.0;
+        #tempDischV := 0.0;
+        #ioHmi.wStatus := #ERR_DT_INVALID;
+    ELSE
+        // 设定值选取
+        IF #ioHmi.rSetpoint > 0.0 THEN
+            #tempSpCm := #ioHmi.rSetpoint;
+        ELSIF #setpointCm > 0.0 THEN
+            #tempSpCm := #setpointCm;
+        ELSE
+            #tempSpCm := 150.0;
+        END_IF;
+
+        // PID参数选取
+        IF #ioHmi.rKp <> 0.0 THEN #tempKp := #ioHmi.rKp; ELSE #tempKp := 2.0; END_IF;
+        IF #ioHmi.rKi >= 0.0 THEN #tempKi := #ioHmi.rKi; ELSE #tempKi := 0.2; END_IF;
+        IF #ioHmi.rKd >= 0.0 THEN #tempKd := #ioHmi.rKd; ELSE #tempKd := 0.05; END_IF;
+
+        // 计算偏差 e = SP - PV
+        #tempErr := #tempSpCm - #tempLevelCm;
+        IF ABS(#tempErr) <= #ioHmi.rDeadband THEN
+            #tempErr := 0.0;
+        END_IF;
+
+        // 4. 手动切自动无扰切换 (Bumpless Transfer)
+        IF #statManualOld AND (NOT #ioHmi.bManualMode) THEN
+            #statIntegral := #ioHmi.rManualFillValve - #ioHmi.rManualDischargeValve;
+            IF #statIntegral > 10.0 THEN #statIntegral := 10.0; END_IF;
+            IF #statIntegral < -10.0 THEN #statIntegral := -10.0; END_IF;
+            #statPrevError := #tempErr;
+        END_IF;
+        #statManualOld := #ioHmi.bManualMode;
+
+        // 手动 / 自动控制解算
+        IF #ioHmi.bManualMode THEN
+            #tempFillV := #ioHmi.rManualFillValve;
+            #tempDischV := #ioHmi.rManualDischargeValve;
+            #ioHmi.wStatus := #STATUS_OK;
+        ELSE
+            // 微分项
+            #tempDeriv := (#tempErr - #statPrevError) / #dtSec;
+            #statPrevError := #tempErr;
+
+            // 积分累加与抗积分饱和 [-10.0, 10.0]
+            #statIntegral := #statIntegral + #tempKi * #tempErr * #dtSec;
+            IF #statIntegral > 10.0 THEN #statIntegral := 10.0; END_IF;
+            IF #statIntegral < -10.0 THEN #statIntegral := -10.0; END_IF;
+
+            // PID输出解算
+            #tempPidOut := #tempKp * #tempErr + #statIntegral + #tempKd * #tempDeriv;
+            IF #tempPidOut > 10.0 THEN #tempPidOut := 10.0; END_IF;
+            IF #tempPidOut < -10.0 THEN #tempPidOut := -10.0; END_IF;
+
+            // 5. 分程控制 (Split-Range)
+            IF #tempPidOut > 0.0 THEN
+                #tempFillV := #tempPidOut;
+                #tempDischV := 0.0;
+            ELSE
+                #tempFillV := 0.0;
+                #tempDischV := -#tempPidOut;
+            END_IF;
+
+            #ioHmi.wStatus := #STATUS_OK;
+        END_IF;
+    END_IF;
+
+    // 5. 高液位溢流保护硬联锁 (>=285cm 强制关死进水阀)
+    IF #tempHighAlm THEN
+        #tempFillV := 0.0;
+        IF #eStopOk AND #enable AND (#dtSec > 0.0) THEN
+            #ioHmi.wStatus := #ERR_OVERFLOW_PROT;
+        END_IF;
+    END_IF;
+
+    // 急停硬切断
+    IF NOT #eStopOk THEN
+        #tempFillV := 0.0;
+        #tempDischV := 0.0;
+        #ioHmi.wStatus := #ERR_ESTOP;
+    END_IF;
+
+    // 阀门开度安全限幅 [0.0, 10.0]
+    IF #tempFillV > #MAX_VALVE_V THEN #tempFillV := #MAX_VALVE_V; END_IF;
+    IF #tempFillV < 0.0 THEN #tempFillV := 0.0; END_IF;
+    IF #tempDischV > #MAX_VALVE_V THEN #tempDischV := #MAX_VALVE_V; END_IF;
+    IF #tempDischV < 0.0 THEN #tempDischV := 0.0; END_IF;
+
+    // 同步写回 ioHmi 状态
+    #ioHmi.rCurrentLevel := #tempLevelCm;
+    #ioHmi.rControlError := #tempErr;
+    #ioHmi.rFillValveOut := #tempFillV;
+    #ioHmi.rDischargeValveOut := #tempDischV;
+    #ioHmi.bHighLevelAlarm := #tempHighAlm;
+    #ioHmi.bLowLevelAlarm := #tempLowAlm;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #fillValveV := #tempFillV;
+    #dischargeValveV := #tempDischV;
+    #levelCm := #tempLevelCm;
+    #highLevelAlarm := #tempHighAlm;
+    #lowLevelAlarm := #tempLowAlm;
+    #error := (NOT #eStopOk) OR #tempHighAlm OR (#dtSec <= 0.0);
+    #status := #ioHmi.wStatus;
+END_FUNCTION_BLOCK

@@ -592,30 +592,85 @@ namespace TiaMcpServer.Siemens
         /// <summary>
         /// Subscribes a password handler to the OnlineLegitimation event so a protected CPU
         /// can be authenticated during GoOnline / Download. Returns an IDisposable that
-        /// unsubscribes when disposed; callers MUST dispose to avoid handler leaks.
-        /// Returns null when no password is provided or the configuration object is not a
-        /// ConnectionConfiguration (no event to hook).
-        /// </summary>
-        private static IDisposable? AttachPasswordHandler(object? configuration, string? password)
+        internal static SecureString? CreateSecureString(string? secret)
         {
-            if (string.IsNullOrEmpty(password) || configuration is not ConnectionConfiguration conn)
+            if (string.IsNullOrEmpty(secret))
+                return null;
+            var secure = new SecureString();
+            foreach (var c in secret!) secure.AppendChar(c);
+            secure.MakeReadOnly();
+            return secure;
+        }
+
+        /// <summary>
+        /// Subscribes to the OnlineLegitimation event so a password-protected CPU or TLS verification prompt
+        /// receives its credentials / Trusted selection during GoOnline / DownloadToPlc. The returned scope
+        /// unsubscribes when disposed; callers MUST dispose to avoid handler leaks.
+        /// </summary>
+        private static IDisposable? AttachPasswordHandler(object? configuration, string? password, bool trustTls = true)
+        {
+            if (configuration is not ConnectionConfiguration conn)
+                return null;
+
+            bool hasPassword = !string.IsNullOrEmpty(password);
+            if (!hasPassword && !trustTls)
                 return null;
 
             // Build the SecureString once. The same instance can be reused across multiple
             // legitimation prompts within the same call (e.g., read-then-write access).
-            var secure = new SecureString();
-            foreach (var c in password!) secure.AppendChar(c);
-            secure.MakeReadOnly();
+            SecureString? secure = CreateSecureString(password);
 
             OnlineConfigurationDelegate handler = (cfg) =>
             {
-                if (cfg is OnlinePasswordConfiguration pwdCfg)
+                if (secure != null && cfg is OnlinePasswordConfiguration pwdCfg)
                 {
                     pwdCfg.SetPassword(secure);
                 }
+                else if (cfg is OnlineAuthenticationConfiguration authCfg)
+                {
+                    var creds = authCfg.OnlineCredentials;
+                    if (creds != null)
+                    {
+                        if (secure != null)
+                        {
+                            creds.Type = UserType.PasswordOnly;
+                            creds.SetPassword(secure);
+                        }
+                        else
+                        {
+                            try { creds.Type = UserType.AnonymousUser; } catch { }
+                        }
+                    }
+                }
+                else if (trustTls && cfg is TlsVerificationConfiguration tlsCfg)
+                {
+                    tlsCfg.CurrentSelection = TlsVerificationConfigurationSelection.Trusted;
+                }
             };
             conn.OnlineLegitimation += handler;
-            return new HandlerScope(() => conn.OnlineLegitimation -= handler);
+            return new HandlerScope(() =>
+            {
+                try { conn.OnlineLegitimation -= handler; }
+                finally { secure?.Dispose(); }
+            });
+        }
+
+        private static bool TryEnableLegacyCommunication(object? configuration)
+        {
+            if (configuration is not ConnectionConfiguration conn)
+                return false;
+
+            try
+            {
+                if (conn.EnableLegacyCommunication)
+                    return false;
+                conn.EnableLegacyCommunication = true;
+                return conn.EnableLegacyCommunication;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private sealed class HandlerScope : IDisposable

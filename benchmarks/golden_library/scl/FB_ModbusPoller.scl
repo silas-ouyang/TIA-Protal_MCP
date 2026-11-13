@@ -1,0 +1,200 @@
+﻿FUNCTION_BLOCK "FB_ModbusPoller"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      enable : Bool;   // 轮询调度器使能
+      reqDone : Bool;   // 底层 MB_MASTER / MB_CLIENT 完成标志
+      reqBusy : Bool;   // 底层通信指令忙标志
+      reqError : Bool;   // 底层通信指令错误标志
+      reqStatus : Word;   // 底层通信指令错误代码
+      reset : Bool;   // 外部故障与统计复位
+   END_VAR
+
+   VAR_OUTPUT 
+      mbReq : Bool;   // 输出给 MB_MASTER/MB_CLIENT 的 REQ 触发信号
+      currentStation : Int;   // 当前激活从站号 (1..8)
+      busy : Bool;   // 调度器运行忙
+      error : Bool;   // 通信超时或从站掉线错误
+      status : Word;   // PLCopen 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_ModbusPoller";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statState : Int;   // 0:IDLE, 10:SEND_REQ, 20:WAIT_RESP, 30:RETRY_DECIDE, 40:INTER_FRAME_WAIT
+      statStationIdx : Int;   // 当前从站号 1..8
+      statRetryCnt : Int;   // 当前从站已重试次数
+      statLastFailedStation : Int;   // 最近掉线从站号
+      statError : Bool;
+      statStatus : Word;
+      instTimeoutTimer : TON_TIME;   // 响应超时定时器
+      instGapTimer : TON_TIME;   // 帧间间隔定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempMaxStations : Int;
+      tempMaxRetries : Int;
+      tempTimeout : Time;
+      tempGapTime : Time;
+      tempMbReq : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_IDLE : Int := 0;
+      STATE_SEND_REQ : Int := 10;
+      STATE_WAIT_RESP : Int := 20;
+      STATE_RETRY : Int := 30;
+      STATE_GAP_WAIT : Int := 40;
+      STATUS_FINISHED : Word := 16#0000;
+      STATUS_NO_CALL : Word := 16#7000;
+      STATUS_BUSY : Word := 16#7002;
+      ERR_STATION_TIMEOUT : Word := 16#8401;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempMaxStations := 4;
+    #tempMaxRetries := 3;
+    #tempTimeout := T#1s;
+    #tempGapTime := T#50ms;
+    #tempMbReq := FALSE;
+
+    // 参数范围校验与缺省值给定
+    IF #ioHmi.iMaxStationCount >= 1 AND #ioHmi.iMaxStationCount <= 8 THEN
+        #tempMaxStations := #ioHmi.iMaxStationCount;
+    ELSE
+        #tempMaxStations := 4;
+    END_IF;
+
+    IF #ioHmi.iMaxRetryCount >= 0 AND #ioHmi.iMaxRetryCount <= 5 THEN
+        #tempMaxRetries := #ioHmi.iMaxRetryCount;
+    ELSE
+        #tempMaxRetries := 3;
+    END_IF;
+
+    IF #ioHmi.tReplyTimeout > T#0s THEN
+        #tempTimeout := #ioHmi.tReplyTimeout;
+    ELSE
+        #tempTimeout := T#1s;
+    END_IF;
+
+    IF #ioHmi.tInterFrameDelay > T#0s THEN
+        #tempGapTime := #ioHmi.tInterFrameDelay;
+    ELSE
+        #tempGapTime := T#50ms;
+    END_IF;
+
+    // 复位统计与故障命令
+    IF #reset OR #ioHmi.bResetStats THEN
+        #statState := #STATE_IDLE;
+        #statStationIdx := 1;
+        #statRetryCnt := 0;
+        #ioHmi.diSuccessCount := 0;
+        #ioHmi.diErrorCount := 0;
+        #ioHmi.bAnyStationFault := FALSE;
+        #statLastFailedStation := 0;
+        #statError := FALSE;
+        #statStatus := #STATUS_NO_CALL;
+        #ioHmi.bResetStats := FALSE;
+    END_IF;
+
+    // 使能判断
+    IF NOT (#enable AND #ioHmi.bEnablePoll) THEN
+        #statState := #STATE_IDLE;
+        #statStationIdx := 1;
+        #statRetryCnt := 0;
+        #tempMbReq := FALSE;
+        #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+        #instGapTimer(IN := FALSE, PT := #tempGapTime);
+        #statStatus := #STATUS_NO_CALL;
+    ELSE
+        // 站号范围防越界校验
+        IF #statStationIdx < 1 OR #statStationIdx > #tempMaxStations THEN
+            #statStationIdx := 1;
+        END_IF;
+
+        // 状态机调度
+        CASE #statState OF
+            #STATE_IDLE:
+                #tempMbReq := FALSE;
+                #statRetryCnt := 0;
+                #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+                #instGapTimer(IN := FALSE, PT := #tempGapTime);
+                #statStatus := #STATUS_BUSY;
+                #statState := #STATE_SEND_REQ;
+
+            #STATE_SEND_REQ:
+                #tempMbReq := TRUE;
+                #statStatus := #STATUS_BUSY;
+                #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+                #statState := #STATE_WAIT_RESP;
+
+            #STATE_WAIT_RESP:
+                #tempMbReq := FALSE;
+                #statStatus := #STATUS_BUSY;
+                #instTimeoutTimer(IN := TRUE, PT := #tempTimeout);
+
+                IF #reqError OR #instTimeoutTimer.Q THEN
+                    #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+                    #statState := #STATE_RETRY;
+                ELSIF #reqDone THEN
+                    #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+                    #ioHmi.diSuccessCount := #ioHmi.diSuccessCount + 1;
+                    #statRetryCnt := 0;
+                    #statState := #STATE_GAP_WAIT;
+                END_IF;
+
+            #STATE_RETRY:
+                #tempMbReq := FALSE;
+                #statStatus := #STATUS_BUSY;
+                IF #statRetryCnt < #tempMaxRetries THEN
+                    #statRetryCnt := #statRetryCnt + 1;
+                    #statState := #STATE_SEND_REQ;
+                ELSE
+                    // 超时重试耗尽，记录单站故障并转入下一站
+                    #ioHmi.diErrorCount := #ioHmi.diErrorCount + 1;
+                    #ioHmi.bAnyStationFault := TRUE;
+                    #statLastFailedStation := #statStationIdx;
+                    #statError := TRUE;
+                    #statStatus := #ERR_STATION_TIMEOUT;
+                    #statRetryCnt := 0;
+                    #statState := #STATE_GAP_WAIT;
+                END_IF;
+
+            #STATE_GAP_WAIT:
+                #tempMbReq := FALSE;
+                #instGapTimer(IN := TRUE, PT := #tempGapTime);
+                IF #instGapTimer.Q THEN
+                    #instGapTimer(IN := FALSE, PT := #tempGapTime);
+                    IF #statStationIdx >= #tempMaxStations THEN
+                        #statStationIdx := 1;
+                        IF NOT #statError THEN
+                            #statStatus := #STATUS_FINISHED;
+                        END_IF;
+                    ELSE
+                        #statStationIdx := #statStationIdx + 1;
+                    END_IF;
+                    #statState := #STATE_SEND_REQ;
+                END_IF;
+
+            ELSE:
+                #statState := #STATE_IDLE;
+                #tempMbReq := FALSE;
+                #instTimeoutTimer(IN := FALSE, PT := #tempTimeout);
+                #instGapTimer(IN := FALSE, PT := #tempGapTime);
+        END_CASE;
+    END_IF;
+
+    // 同步状态至 ioHmi
+    #ioHmi.iActiveStationIdx := #statStationIdx;
+    #ioHmi.wStatus := #statStatus;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #mbReq := #tempMbReq;
+    #currentStation := #statStationIdx;
+    #busy := (#statState <> #STATE_IDLE);
+    #error := #statError;
+    #status := #statStatus;
+END_FUNCTION_BLOCK

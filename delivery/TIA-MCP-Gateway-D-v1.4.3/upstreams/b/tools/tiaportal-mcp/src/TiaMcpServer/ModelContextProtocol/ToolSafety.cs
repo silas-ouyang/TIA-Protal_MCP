@@ -91,7 +91,7 @@ namespace TiaMcpServer.ModelContextProtocol
             "DownloadToPlc", "GoOnline", "GoOffline", "GoOfflineAll", "GetOnlineState",
             "CompareSoftwareToOnline", "GetPlcRunStateS7", "ProbeS7CpuIdentity",
             "ReadPlcLiveValuesS7", "ReadPlcLiveValuesOpcUa", "SamplePlcLiveValuesS7",
-            "MonitorWatchTableLiveS7", "TraceTagCauseLive",
+            "MonitorWatchTableLiveS7", "TraceTagCauseLive", "SetOnlinePlcMasterSecret",
         };
 
         // Repeating the call with the same arguments leaves the same end state.

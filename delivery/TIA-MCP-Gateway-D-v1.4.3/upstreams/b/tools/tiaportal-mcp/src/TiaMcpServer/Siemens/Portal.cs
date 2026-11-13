@@ -833,7 +833,7 @@ namespace TiaMcpServer.Siemens
             }
         }
 
-        public bool CreateProject(string directoryPath, string projectName, bool closeForeignProject = false)
+        public bool CreateProject(string directoryPath, string projectName, bool closeForeignProject = false, bool supportSimulation = false)
         {
             var foreign = ForeignOpenProjectName();
             if (foreign != null && !closeForeignProject)
@@ -869,6 +869,10 @@ namespace TiaMcpServer.Siemens
                 var created = _portal!.Projects.Create(di, projectName);
                 _project = created;
                 _projectOpenedByUs = true;
+                if (supportSimulation && _project != null)
+                {
+                    _project.IsSimulationDuringBlockCompilationEnabled = true;
+                }
                 return _project != null;
             }
             catch (Exception ex)
@@ -876,6 +880,26 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "CreateProject failed: dir={Dir}, name={Name}", directoryPath, projectName);
                 return false;
             }
+        }
+
+        public JsonObject SetProjectSimulationSupport(bool enabled = true, bool? supportVirtualPlc = null)
+        {
+            if (IsProjectNull())
+                throw new PortalException(PortalErrorCode.InvalidState, "No project open.");
+
+            _project!.IsSimulationDuringBlockCompilationEnabled = enabled;
+            if (supportVirtualPlc.HasValue)
+            {
+                _project.IsVirtualPlcDuringBlockCompilationEnabled = supportVirtualPlc.Value;
+            }
+
+            return new JsonObject
+            {
+                ["ok"] = true,
+                ["projectName"] = _project.Name ?? "",
+                ["isSimulationDuringBlockCompilationEnabled"] = _project.IsSimulationDuringBlockCompilationEnabled,
+                ["isVirtualPlcDuringBlockCompilationEnabled"] = _project.IsVirtualPlcDuringBlockCompilationEnabled
+            };
         }
 
         public object? GetProjectInfo()

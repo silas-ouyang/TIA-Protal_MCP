@@ -1,0 +1,1191 @@
+{
+  "blockId": "B03",
+  "blockName": "FB_FIO_BufferConveyor",
+  "udtName": "UDT_HMI_FIO_BufferConveyor",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "startBtn": false,
+      "stopBtn": true,
+      "resetBtn": false,
+      "sensorZ1": false,
+      "sensorZ2": false,
+      "sensorZ3": false,
+      "downstreamReady": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bStartCmd": false,
+      "bStopCmd": false,
+      "bResetCmd": false,
+      "bManualConv1": false,
+      "bManualConv2": false,
+      "bManualConv3": false,
+      "tJamTimeout": "T#6s",
+      "iOccupiedZones": 0,
+      "bBufferFull": false,
+      "bJamFault": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statRunning": false,
+      "statJamError": false,
+      "statStartOld": false,
+      "statResetOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_PowerOnInit",
+      "category": "POWER_ON_INIT",
+      "description": "上电初始状态：急停正常，停机待机，传送带停止，阻挡气缸缩回，状态码 16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "PLC上电首周期扫描，确认3段传送带及刀片全部处于释放状态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NormalFlow_ZeroPressureAccumulation",
+      "category": "NORMAL_FLOW",
+      "description": "正常工艺流程：三段式零压力积放（ZPA），依次积放至满料阻挡，下游就绪后平稳放行",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "启动系统：startBtn 上升沿触发，系统运行，启动全部3段传送带并向上游使能 upstreamReady",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": true,
+            "conv2": true,
+            "conv3": true,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": true,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第1个料箱到达末端 Z3 (sensorZ3=TRUE)，下游未就绪 (downstreamReady=FALSE)，Z3 驻留停机 (conv3=FALSE)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 2000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": true,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": true,
+            "conv2": true,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": true,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第2个料箱到达 Z2 (sensorZ2=TRUE)，前段已驻留，Z2 立即停机 (conv2=FALSE) 且升起阻挡刀片2 (stopBlade2=TRUE)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": true,
+            "sensorZ3": true,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": true,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": true,
+            "upstreamReady": true,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第3个料箱到达 Z1 (sensorZ1=TRUE)，Z2与Z3均驻留，Z1 停机 (conv1=FALSE)、升起刀片1，全满 bufferFull=TRUE，关闭上游进料 upstreamReady=FALSE",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 6000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": true,
+            "sensorZ2": true,
+            "sensorZ3": true,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": true,
+            "stopBlade2": true,
+            "upstreamReady": false,
+            "bufferFull": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "下游允许进料 (downstreamReady=TRUE)，Z3 释放，启动 conv3 放行第1个料箱",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 7000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": true,
+            "sensorZ2": true,
+            "sensorZ3": true,
+            "downstreamReady": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": true,
+            "conv2": true,
+            "conv3": true,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": true,
+            "bufferFull": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 6,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "第1个料箱离开 Z3 (sensorZ3=FALSE)，Z2 释放刀片 (stopBlade2=FALSE) 并启动 conv2 将第2料箱移至 Z3",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 8000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": true,
+            "sensorZ2": true,
+            "sensorZ3": false,
+            "downstreamReady": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 3,
+            "bBufferFull": true,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": true,
+            "conv2": true,
+            "conv3": true,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": true,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 2,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_EStopDuringMotion",
+      "category": "ESTOP_DURING_MOTION",
+      "description": "运动中急停：急停突发切断 eStopOk=FALSE，全部3段传送带及刀片硬切断，报 16#8402",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "传送带积放运行中按下急停，所有电机与电磁阀断电，upstreamReady 降为 FALSE",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 3500,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": true,
+            "sensorZ3": false,
+            "downstreamReady": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ResetWhileEStopActive",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时复位：急停下尝试复位被拦截；急停解除后复位成功回到停机就绪",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopOk=FALSE 时触发 resetBtn，系统保持故障且输出锁定",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "恢复 eStopOk=TRUE，再次复位，故障清除转入停机待命",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 5000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SensorConflictOrStuck",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "光电传感器卡死判定：Z3 放料运行中，sensorZ3 被持续遮挡超过 tJamTimeout (6s)，判定卡料故障",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "conv3 驱动放行，但 sensorZ3 持续常亮超时 6000ms，触发卡料报警并停止相关皮带",
+          "scanCycleOrDuration": "6000ms",
+          "elapsedTimeMs": 6100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": true,
+            "downstreamReady": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ActionTimeout",
+      "category": "ACTION_TIMEOUT",
+      "description": "传送带超时卡料保护：Z1 进料运行中发生堵塞卡死，超时报 16#8401 并切断运行",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "conv1 运转且 sensorZ1 持续感应超 6000ms，instJamTimer1 触发卡料停机",
+          "scanCycleOrDuration": "6000ms",
+          "elapsedTimeMs": 6200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": true,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 1,
+            "bBufferFull": false,
+            "bJamFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_ModeSwitchTransient",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动模式切换：进入手动模式支持单段点动测试，切回自动恢复全线自适应零压控制",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切换为手动模式 (bManualMode=TRUE)，点动测试 2 号皮带 (bManualConv2=TRUE)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": true,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": true,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": true,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切回自动模式，手动输出断开，恢复待机安全",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_CommandConflict",
+      "category": "COMMAND_CONFLICT",
+      "description": "命令冲突保护：启动和停止信号同时生效时，停止信号绝对优先",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "同时输入启动脉冲与停止脉冲 (stopBtn=FALSE/bStopCmd=TRUE)，系统停留在停止状态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": false,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": true,
+            "bStopCmd": true,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": true,
+            "bStopCmd": true,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CaseElseIllegalState",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "非法边界异常自愈：当发生异常状态或未知异常标记时，系统自恢复至停机安全态",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "注入越界分区数或非法标志，安全机制拦截并重置为有效值 0",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "sensorZ1": false,
+            "sensorZ2": false,
+            "sensorZ3": false,
+            "downstreamReady": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 99,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "bManualConv1": false,
+            "bManualConv2": false,
+            "bManualConv3": false,
+            "tJamTimeout": "T#6s",
+            "iOccupiedZones": 99,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "conv1": false,
+            "conv2": false,
+            "conv3": false,
+            "stopBlade1": false,
+            "stopBlade2": false,
+            "upstreamReady": false,
+            "bufferFull": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iOccupiedZones": 0,
+            "bBufferFull": false,
+            "bJamFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    }
+  ]
+}

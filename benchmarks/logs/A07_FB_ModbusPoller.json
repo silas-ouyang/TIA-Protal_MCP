@@ -1,0 +1,17 @@
+{
+  "id": "A07",
+  "blockName": "FB_ModbusPoller",
+  "udtName": "UDT_HMI_ModbusPoller",
+  "firstPassSuccess": true,
+  "totalAttempts": 1,
+  "finalStatus": "PASS",
+  "attempts": [
+    {
+      "attempt": 1,
+      "errors": [],
+      "warnings": [],
+      "rootCause": "None",
+      "fixApplied": "None"
+    }
+  ]
+}

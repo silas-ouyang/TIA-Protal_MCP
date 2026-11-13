@@ -1,0 +1,17 @@
+{
+  "id": "A06",
+  "blockName": "FC_ButtonDebounceToggle",
+  "udtName": "UDT_HMI_ButtonDebounce",
+  "firstPassSuccess": true,
+  "totalAttempts": 1,
+  "finalStatus": "PASS",
+  "attempts": [
+    {
+      "attempt": 1,
+      "errors": [],
+      "warnings": [],
+      "rootCause": "None",
+      "fixApplied": "None"
+    }
+  ]
+}

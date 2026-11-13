@@ -1,0 +1,175 @@
+﻿FUNCTION_BLOCK "FB_CylinderCtrl"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常信号（常闭健康为 TRUE，FALSE 立即失电缩回/切断）
+      autoMode : Bool;   // 外部自动模式选择
+      autoExtendCmd : Bool;   // 自动模式伸出请求
+      autoRetractCmd : Bool;   // 自动模式缩回请求
+      interlockOk : Bool;   // 机械防碰撞安全联锁允许（TRUE 允许动作）
+      sensorExtended : Bool;   // 气缸伸出到位磁性开关反馈
+      sensorRetracted : Bool;   // 气缸缩回到位磁性开关反馈
+      doubleSolenoid : Bool;   // TRUE: 双电控保持阀, FALSE: 单电控弹簧复位阀
+      timeout : Time;   // 默认超时时间（如 T#3s）
+      reset : Bool;   // 外部故障复位
+   END_VAR
+
+   VAR_OUTPUT 
+      coilExtend : Bool;   // 气缸伸出电磁阀输出
+      coilRetract : Bool;   // 气缸缩回电磁阀输出
+      inExtendedPos : Bool;   // 已稳定伸出到位
+      inRetractedPos : Bool;   // 已稳定缩回到位
+      error : Bool;   // 气缸故障报警
+      status : Word;   // 状态/故障代码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_CylinderCtrl";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statTargetExtend : Bool;   // 当前目标方向：TRUE伸出，FALSE缩回
+      statError : Bool;   // 故障锁存标志
+      statStatus : Word;   // 状态字锁存
+      instExtendTimeout : TON_TIME;   // 伸出超时多重背景定时器
+      instRetractTimeout : TON_TIME;   // 缩回超时多重背景定时器
+      instSensorBothTon : TON_TIME;   // 双传感器同时导通防抖诊断定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempEffTimeout : Time;
+      tempReqExtend : Bool;
+      tempReqRetract : Bool;
+      tempCoilExt : Bool;
+      tempCoilRet : Bool;
+      tempReset : Bool;
+      tempInExtendedPos : Bool;
+      tempInRetractedPos : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_OK : Word := 16#0000;
+      ERR_EXTEND_TIMEOUT : Word := 16#8401;
+      ERR_RETRACT_TIMEOUT : Word := 16#8402;
+      ERR_SENSOR_CONFLICT : Word := 16#8403;
+      ERR_ESTOP : Word := 16#8404;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempEffTimeout := T#0s;
+    #tempReqExtend := FALSE;
+    #tempReqRetract := FALSE;
+    #tempCoilExt := FALSE;
+    #tempCoilRet := FALSE;
+    #tempReset := FALSE;
+    #tempInExtendedPos := FALSE;
+    #tempInRetractedPos := FALSE;
+
+    // 动作超时设定值选取
+    IF #ioHmi.tTimeoutSV > T#0s THEN
+        #tempEffTimeout := #ioHmi.tTimeoutSV;
+    ELSIF #timeout > T#0s THEN
+        #tempEffTimeout := #timeout;
+    ELSE
+        #tempEffTimeout := T#3s;
+    END_IF;
+
+    // 复位处理
+    #tempReset := #reset OR #ioHmi.bResetCmd;
+    IF #ioHmi.bResetCmd THEN
+        #ioHmi.bResetCmd := FALSE;
+    END_IF;
+
+    IF #tempReset THEN
+        #statError := FALSE;
+        #statStatus := #STATUS_OK;
+    END_IF;
+
+    // 磁性开关冲突诊断：双传感器同时导通防抖 T#200ms
+    #instSensorBothTon(IN := (#sensorExtended AND #sensorRetracted), PT := T#200ms);
+    IF #instSensorBothTon.Q THEN
+        #statError := TRUE;
+        #statStatus := #ERR_SENSOR_CONFLICT;
+    END_IF;
+
+    // 手自动命令源选择
+    IF #ioHmi.bManualMode OR (NOT #autoMode) THEN
+        #tempReqExtend := #ioHmi.bManualExtendCmd;
+        #tempReqRetract := #ioHmi.bManualRetractCmd;
+    ELSE
+        #tempReqExtend := #autoExtendCmd;
+        #tempReqRetract := #autoRetractCmd;
+    END_IF;
+
+    // 缩回优先于伸出，且伸出受 interlockOk 联锁限制
+    IF (NOT #statError) AND #eStopOk THEN
+        IF #tempReqRetract THEN
+            #statTargetExtend := FALSE;
+        ELSIF #tempReqExtend AND #interlockOk THEN
+            #statTargetExtend := TRUE;
+        END_IF;
+    END_IF;
+
+    // 超时保护监控
+    #instExtendTimeout(IN := (#statTargetExtend AND (NOT #sensorExtended) AND (NOT #statError) AND #eStopOk),
+                       PT := #tempEffTimeout);
+    IF #instExtendTimeout.Q THEN
+        #statError := TRUE;
+        #statStatus := #ERR_EXTEND_TIMEOUT;
+    END_IF;
+
+    #instRetractTimeout(IN := ((NOT #statTargetExtend) AND (NOT #sensorRetracted) AND (NOT #statError) AND #eStopOk),
+                        PT := #tempEffTimeout);
+    IF #instRetractTimeout.Q THEN
+        #statError := TRUE;
+        #statStatus := #ERR_RETRACT_TIMEOUT;
+    END_IF;
+
+    // 急停最高优处理
+    IF NOT #eStopOk THEN
+        #statTargetExtend := FALSE;
+        #statError := TRUE;
+        #statStatus := #ERR_ESTOP;
+    END_IF;
+
+    // 单/双电控阀输出逻辑
+    IF (NOT #statError) AND #eStopOk THEN
+        IF NOT #doubleSolenoid THEN
+            #tempCoilExt := #statTargetExtend;
+            #tempCoilRet := FALSE;
+        ELSE
+            #tempCoilExt := #statTargetExtend AND (NOT #sensorExtended);
+            #tempCoilRet := (NOT #statTargetExtend) AND (NOT #sensorRetracted);
+        END_IF;
+    ELSE
+        #tempCoilExt := FALSE;
+        #tempCoilRet := FALSE;
+    END_IF;
+
+    // 严格线圈互锁
+    IF #tempCoilExt AND #tempCoilRet THEN
+        #tempCoilExt := FALSE;
+        #tempCoilRet := FALSE;
+    END_IF;
+
+    // 状态与到位检测
+    #tempInExtendedPos := #sensorExtended AND (NOT #instSensorBothTon.Q);
+    #tempInRetractedPos := #sensorRetracted AND (NOT #instSensorBothTon.Q);
+
+    // 同步写回 HMI 状态
+    #ioHmi.bIsExtended := #tempInExtendedPos;
+    #ioHmi.bIsRetracted := #tempInRetractedPos;
+    #ioHmi.bValveExtendOut := #tempCoilExt;
+    #ioHmi.bValveRetractOut := #tempCoilRet;
+    #ioHmi.bFault := #statError;
+    #ioHmi.wStatus := #statStatus;
+
+    // 输出赋值 (DA008)
+    #coilExtend := #tempCoilExt;
+    #coilRetract := #tempCoilRet;
+    #inExtendedPos := #tempInExtendedPos;
+    #inRetractedPos := #tempInRetractedPos;
+    #error := #statError;
+    #status := #statStatus;
+END_FUNCTION_BLOCK

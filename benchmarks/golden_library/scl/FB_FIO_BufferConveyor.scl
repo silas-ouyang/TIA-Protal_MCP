@@ -1,0 +1,193 @@
+﻿FUNCTION_BLOCK "FB_FIO_BufferConveyor"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常（常闭健康为 TRUE）
+      startBtn : Bool;   // 启动按钮
+      stopBtn : Bool;   // 停止按钮（常闭健康为 TRUE）
+      resetBtn : Bool;   // 复位按钮
+      sensorZ1 : Bool;   // 第1段缓冲带末端光电传感器（TRUE=有工件）
+      sensorZ2 : Bool;   // 第2段缓冲带末端光电传感器（TRUE=有工件）
+      sensorZ3 : Bool;   // 第3段缓冲带末端光电传感器（TRUE=有工件）
+      downstreamReady : Bool;   // 下游工位允许接收信号
+   END_VAR
+
+   VAR_OUTPUT 
+      conv1 : Bool;   // 1号缓冲传送带电机
+      conv2 : Bool;   // 2号缓冲传送带电机
+      conv3 : Bool;   // 3号缓冲传送带电机
+      stopBlade1 : Bool;   // 1号阻挡气缸刀片（TRUE=升起阻挡）
+      stopBlade2 : Bool;   // 2号阻挡气缸刀片（TRUE=升起阻挡）
+      upstreamReady : Bool;   // 向上游发送允许进料信号
+      bufferFull : Bool;   // 三段缓冲全满指示
+      error : Bool;   // 卡料或急停故障
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_BufferConveyor";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statRunning : Bool;
+      statJamError : Bool;
+      statStartOld : Bool;
+      statResetOld : Bool;
+      instJamTimer1 : TON_TIME;   // Z1放行卡料监控定时器
+      instJamTimer2 : TON_TIME;   // Z2放行卡料监控定时器
+      instJamTimer3 : TON_TIME;   // Z3放行卡料监控定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempStartRise : Bool;
+      tempResetRise : Bool;
+      tempJamTime : Time;
+      tempZ3Hold : Bool;
+      tempZ2Hold : Bool;
+      tempZ1Hold : Bool;
+      tempConv1 : Bool;
+      tempConv2 : Bool;
+      tempConv3 : Bool;
+      tempOccupied : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_OK : Word := 16#0000;
+      STATUS_IDLE : Word := 16#7000;
+      ERR_JAM : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempStartRise := FALSE;
+    #tempResetRise := FALSE;
+    #tempJamTime := T#6s;
+    #tempZ3Hold := FALSE;
+    #tempZ2Hold := FALSE;
+    #tempZ1Hold := FALSE;
+    #tempConv1 := FALSE;
+    #tempConv2 := FALSE;
+    #tempConv3 := FALSE;
+    #tempOccupied := 0;
+
+    // 参数时间获取与保护
+    IF #ioHmi.tJamTimeout > T#0s THEN
+        #tempJamTime := #ioHmi.tJamTimeout;
+    ELSE
+        #tempJamTime := T#6s;
+    END_IF;
+
+    // 按钮取沿
+    #tempStartRise := (#startBtn OR #ioHmi.bStartCmd) AND (NOT #statStartOld);
+    #statStartOld := #startBtn OR #ioHmi.bStartCmd;
+    IF #ioHmi.bStartCmd THEN #ioHmi.bStartCmd := FALSE; END_IF;
+
+    #tempResetRise := (#resetBtn OR #ioHmi.bResetCmd) AND (NOT #statResetOld);
+    #statResetOld := #resetBtn OR #ioHmi.bResetCmd;
+    IF #ioHmi.bResetCmd THEN #ioHmi.bResetCmd := FALSE; END_IF;
+
+    // 启停控制
+    IF #tempStartRise AND #eStopOk AND (NOT #statJamError) THEN
+        #statRunning := TRUE;
+    END_IF;
+
+    // 停止按钮（常闭，FALSE=按下）
+    IF (NOT #stopBtn) OR #ioHmi.bStopCmd THEN
+        #statRunning := FALSE;
+    END_IF;
+    IF #ioHmi.bStopCmd THEN #ioHmi.bStopCmd := FALSE; END_IF;
+
+    // 复位
+    IF #tempResetRise AND #eStopOk THEN
+        #statJamError := FALSE;
+    END_IF;
+
+    // 急停
+    IF NOT #eStopOk THEN
+        #statRunning := FALSE;
+    END_IF;
+
+    // 统计当前被占用的缓冲区段数
+    #tempOccupied := 0;
+    IF #sensorZ1 THEN #tempOccupied := #tempOccupied + 1; END_IF;
+    IF #sensorZ2 THEN #tempOccupied := #tempOccupied + 1; END_IF;
+    IF #sensorZ3 THEN #tempOccupied := #tempOccupied + 1; END_IF;
+
+    // 手动/自动模式运算
+    IF #ioHmi.bManualMode THEN
+        #tempConv1 := #ioHmi.bManualConv1;
+        #tempConv2 := #ioHmi.bManualConv2;
+        #tempConv3 := #ioHmi.bManualConv3;
+        #tempZ1Hold := FALSE;
+        #tempZ2Hold := FALSE;
+        #tempZ3Hold := FALSE;
+    ELSE
+        IF #statRunning AND (NOT #statJamError) AND #eStopOk THEN
+            // 零压力积放逻辑 (ZPA)
+            // Z3 驻留条件：Z3有工件且下游未准备好
+            #tempZ3Hold := #sensorZ3 AND (NOT #downstreamReady);
+            // Z2 驻留条件：Z2有工件且前段Z3驻留
+            #tempZ2Hold := #sensorZ2 AND #tempZ3Hold;
+            // Z1 驻留条件：Z1有工件且前段Z2驻留
+            #tempZ1Hold := #sensorZ1 AND #tempZ2Hold;
+
+            #tempConv3 := NOT #tempZ3Hold;
+            #tempConv2 := NOT #tempZ2Hold;
+            #tempConv1 := NOT #tempZ1Hold;
+        ELSE
+            #tempConv1 := FALSE;
+            #tempConv2 := FALSE;
+            #tempConv3 := FALSE;
+            #tempZ1Hold := FALSE;
+            #tempZ2Hold := FALSE;
+            #tempZ3Hold := FALSE;
+        END_IF;
+    END_IF;
+
+    // 卡料检测：某段传送带正在运行且其末端光电持续遮挡超过超时时间
+    #instJamTimer1(IN := (#tempConv1 AND #sensorZ1 AND #eStopOk), PT := #tempJamTime);
+    #instJamTimer2(IN := (#tempConv2 AND #sensorZ2 AND #eStopOk), PT := #tempJamTime);
+    #instJamTimer3(IN := (#tempConv3 AND #sensorZ3 AND #eStopOk), PT := #tempJamTime);
+
+    IF #instJamTimer1.Q OR #instJamTimer2.Q OR #instJamTimer3.Q THEN
+        #statJamError := TRUE;
+        #statRunning := FALSE;
+    END_IF;
+
+    // 急停硬切断
+    IF NOT #eStopOk THEN
+        #tempConv1 := FALSE;
+        #tempConv2 := FALSE;
+        #tempConv3 := FALSE;
+        #tempZ1Hold := FALSE;
+        #tempZ2Hold := FALSE;
+    END_IF;
+
+    // 状态码解算
+    IF NOT #eStopOk THEN
+        #ioHmi.wStatus := #ERR_ESTOP;
+    ELSIF #statJamError THEN
+        #ioHmi.wStatus := #ERR_JAM;
+    ELSIF #statRunning THEN
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSE
+        #ioHmi.wStatus := #STATUS_IDLE;
+    END_IF;
+
+    // 同步写回 ioHmi
+    #ioHmi.iOccupiedZones := #tempOccupied;
+    #ioHmi.bBufferFull := (#tempOccupied >= 3);
+    #ioHmi.bJamFault := #statJamError;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #conv1 := #tempConv1 AND #eStopOk;
+    #conv2 := #tempConv2 AND #eStopOk;
+    #conv3 := #tempConv3 AND #eStopOk;
+    #stopBlade1 := #tempZ1Hold AND #eStopOk;
+    #stopBlade2 := #tempZ2Hold AND #eStopOk;
+    #upstreamReady := #statRunning AND (NOT #tempZ1Hold) AND (NOT #statJamError) AND #eStopOk;
+    #bufferFull := (#tempOccupied >= 3);
+    #error := #statJamError OR (NOT #eStopOk);
+    #status := #ioHmi.wStatus;
+END_FUNCTION_BLOCK

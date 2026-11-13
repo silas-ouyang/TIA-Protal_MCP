@@ -1,0 +1,923 @@
+{
+  "blockId": "A07",
+  "blockName": "FB_ModbusPoller",
+  "udtName": "UDT_HMI_ModbusPoller",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "enable": false,
+      "reqDone": false,
+      "reqBusy": false,
+      "reqError": false,
+      "reqStatus": "16#0000",
+      "reset": false
+    },
+    "ioHmi": {
+      "bEnablePoll": true,
+      "bResetStats": false,
+      "iMaxStationCount": 2,
+      "iMaxRetryCount": 3,
+      "tReplyTimeout": "T#1s",
+      "tInterFrameDelay": "T#50ms",
+      "iActiveStationIdx": 1,
+      "diSuccessCount": 0,
+      "diErrorCount": 0,
+      "bAnyStationFault": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statState": 0,
+      "statStationIdx": 1,
+      "statRetryCnt": 0,
+      "statLastFailedStation": 0,
+      "statError": false,
+      "statStatus": "16#7000"
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：调度器未使能(enable=FALSE)，处于STATE_IDLE(0)，mbReq=FALSE，busy=FALSE，status=16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "enable=FALSE，调度器待机，status=16#7000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "enable": false,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：2个从站顺序轮询，握手成功，帧间静默后自动切换下一站",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "enable置TRUE，从站1发出请求，mbReq=TRUE，busy=TRUE，status=16#7002",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 10,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "mbReq": true,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "从站1底层通信完成(reqDone=TRUE)，成功计数加1，进入帧间静默STATE_GAP_WAIT(40)",
+          "scanCycleOrDuration": "20ms",
+          "elapsedTimeMs": 30,
+          "inputs": {
+            "enable": true,
+            "reqDone": true,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "帧间延迟满50ms，切换至从站2发送请求，mbReq=TRUE，currentStation=2",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 80,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": true,
+            "currentStation": 2,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "从站2应答完成(reqDone=TRUE)，一轮轮询结束，status更新为STATUS_FINISHED(16#0000)",
+          "scanCycleOrDuration": "60ms",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "enable": true,
+            "reqDone": true,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 1,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停/通信中止：在等待应答过程中主站急停或使能中断(enable=FALSE)，通信请求立即撤销",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "等待应答时enable掉为FALSE，mbReq硬切断为FALSE，状态重置为16#7000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 110,
+          "inputs": {
+            "enable": false,
+            "reqDone": false,
+            "reqBusy": true,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "未使能时尝试复位：enable=FALSE下触发reset=TRUE，统计数据可复位清零但调度器维持未使能状态",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "enable=FALSE且reset=TRUE，diSuccessCount与diErrorCount清零，状态保持16#7000",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 120,
+          "inputs": {
+            "enable": false,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": true,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7000"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": true,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 2,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "从站通信异常校验失败：reqError=TRUE(如CRC错误或从站异常码16#8382)，启动重试机制",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "收到从站错误标志reqError=TRUE，statRetryCnt自增并进入STATE_RETRY(30)",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 130,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": true,
+            "reqStatus": "16#8382",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "从站应答超时与死锁隔离保护：从站无响应超时T#1s且重试3次满额后，记录ERR_STATION_TIMEOUT(16#8401)并自动轮跳下一站",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "第3次重试再次超时1050ms，触发从站掉线16#8401，diErrorCount+1，强制跳切从站2防止死锁",
+          "scanCycleOrDuration": "1050ms",
+          "elapsedTimeMs": 1180,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": true,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：HMI轮询使能开关(bEnablePoll)动态暂停与恢复",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "ioHmi.bEnablePoll置FALSE，轮询暂停并归位至从站1，输出撤销",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1190,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": false,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bEnablePoll": false,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "总线信号冲突消解：底层同时置位reqDone与reqError异常状态，错误处理优先，防止死锁",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "reqDone与reqError并发，按容错原则判定为失败，进入重试分支",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 1200,
+          "inputs": {
+            "enable": true,
+            "reqDone": true,
+            "reqError": true,
+            "reqBusy": false,
+            "reqStatus": "16#818C",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 2,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 1,
+            "bAnyStationFault": true,
+            "wStatus": "16#7002"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "掉线故障人工复位与恢复：从站排除物理故障后，触发reset=TRUE，清除bAnyStationFault并恢复正常轮询",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "施加reset=TRUE，从非法/故障状态复位回IDLE并清错，从站索引重置回1",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 1210,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": true,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 2,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": true,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 2,
+            "diSuccessCount": 0,
+            "diErrorCount": 2,
+            "bAnyStationFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "mbReq": false,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "撤销reset信号(reset=FALSE)下一扫描周期由IDLE进入SEND_REQ，对1号从站发出轮询请求",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 1220,
+          "inputs": {
+            "enable": true,
+            "reqDone": false,
+            "reqBusy": false,
+            "reqError": false,
+            "reqStatus": "16#0000",
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "ioHmi": {
+            "bEnablePoll": true,
+            "bResetStats": false,
+            "iMaxStationCount": 2,
+            "iMaxRetryCount": 3,
+            "tReplyTimeout": "T#1s",
+            "tInterFrameDelay": "T#50ms",
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedOutputs": {
+            "mbReq": true,
+            "currentStation": 1,
+            "busy": true,
+            "error": false,
+            "status": "16#7002"
+          },
+          "expectedHmi_out": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          },
+          "expectedHmi": {
+            "bResetStats": false,
+            "iActiveStationIdx": 1,
+            "diSuccessCount": 0,
+            "diErrorCount": 0,
+            "bAnyStationFault": false,
+            "wStatus": "16#7002"
+          }
+        }
+      ]
+    }
+  ]
+}

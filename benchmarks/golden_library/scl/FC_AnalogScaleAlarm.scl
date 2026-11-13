@@ -1,0 +1,138 @@
+﻿FUNCTION "FC_AnalogScaleAlarm" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      rawInput : Int;   // 模拟量通道原始输入值（如 %IW64，0..27648）
+      bipolar : Bool;   // TRUE: 双极性(-27648..27648), FALSE: 单极性(0..27648)
+      reset : Bool;   // 外部复位输入
+   END_VAR
+
+   VAR_OUTPUT 
+      scaledValue : Real;   // 标定后的工程量输出
+      alarmHH : Bool;   // 高高限报警输出
+      alarmH : Bool;   // 高限警告输出
+      alarmL : Bool;   // 低限警告输出
+      alarmLL : Bool;   // 低低限报警输出
+      error : Bool;   // 综合错误标志（断线或参数错误）
+      status : Word;   // PLCopen 标准状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_AnalogScale";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR_TEMP 
+      tempRawReal : Real;
+      tempSpanRaw : Real;
+      tempScaled : Real;
+      tempWireFault : Bool;
+      tempError : Bool;
+      tempStatus : Word;
+      tempHH : Bool;
+      tempH : Bool;
+      tempL : Bool;
+      tempLL : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      RAW_OVERFLOW : Int := 32511;
+      RAW_UNDERFLOW_UNI : Int := -4864;
+      RAW_UNDERFLOW_BIP : Int := -32512;
+      STATUS_OK : Word := 16#0000;
+      ERR_ZERO_SPAN : Word := 16#8200;
+      ERR_LIMIT_CFG : Word := 16#8201;
+      ERR_WIRE_BREAK : Word := 16#8401;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempRawReal := 0.0;
+    #tempSpanRaw := 0.0;
+    #tempScaled := 0.0;
+    #tempWireFault := FALSE;
+    #tempError := FALSE;
+    #tempStatus := #STATUS_OK;
+    #tempHH := FALSE;
+    #tempH := FALSE;
+    #tempL := FALSE;
+    #tempLL := FALSE;
+
+    // 复位触发命令清除
+    IF #reset OR #ioHmi.bResetCmd THEN
+        #ioHmi.bResetCmd := FALSE;
+    END_IF;
+
+    // 1. 检查量程配置
+    #tempSpanRaw := #ioHmi.rRawMax - #ioHmi.rRawMin;
+    IF ABS(#tempSpanRaw) < 1.0E-5 OR (#ioHmi.rEngMin >= #ioHmi.rEngMax) THEN
+        #tempError := TRUE;
+        #tempStatus := #ERR_ZERO_SPAN;
+        #tempScaled := 0.0;
+    // 2. 检查报警阈值单调性 (rLimitLL <= rLimitL <= rLimitH <= rLimitHH)
+    ELSIF NOT (#ioHmi.rLimitLL <= #ioHmi.rLimitL AND #ioHmi.rLimitL <= #ioHmi.rLimitH AND #ioHmi.rLimitH <= #ioHmi.rLimitHH) THEN
+        #tempError := TRUE;
+        #tempStatus := #ERR_LIMIT_CFG;
+        #tempScaled := 0.0;
+    ELSE
+        // 3. 检测原始通道断线/上溢
+        IF (#rawInput > #RAW_OVERFLOW) OR 
+           (NOT #bipolar AND (#rawInput < #RAW_UNDERFLOW_UNI)) OR 
+           (#bipolar AND (#rawInput < #RAW_UNDERFLOW_BIP)) THEN
+            #tempWireFault := TRUE;
+            #tempError := TRUE;
+            #tempStatus := #ERR_WIRE_BREAK;
+            #tempScaled := 0.0;
+        ELSE
+            #tempWireFault := FALSE;
+            // 4. 手动覆盖或线性换算
+            IF #ioHmi.bManualOverride THEN
+                #tempScaled := #ioHmi.rManualValue;
+            ELSE
+                #tempRawReal := INT_TO_REAL(#rawInput);
+                #tempScaled := #ioHmi.rEngMin + ((#tempRawReal - #ioHmi.rRawMin) / #tempSpanRaw) * (#ioHmi.rEngMax - #ioHmi.rEngMin);
+                // 限幅在 [rEngMin, rEngMax]
+                IF #tempScaled > #ioHmi.rEngMax THEN
+                    #tempScaled := #ioHmi.rEngMax;
+                ELSIF #tempScaled < #ioHmi.rEngMin THEN
+                    #tempScaled := #ioHmi.rEngMin;
+                END_IF;
+            END_IF;
+
+            // 5. 比较报警阈值
+            IF #tempScaled >= #ioHmi.rLimitHH THEN
+                #tempHH := TRUE;
+                #tempH := TRUE;
+            ELSIF #tempScaled >= #ioHmi.rLimitH THEN
+                #tempH := TRUE;
+            END_IF;
+
+            IF #tempScaled <= #ioHmi.rLimitLL THEN
+                #tempLL := TRUE;
+                #tempL := TRUE;
+            ELSIF #tempScaled <= #ioHmi.rLimitL THEN
+                #tempL := TRUE;
+            END_IF;
+
+            #tempStatus := #STATUS_OK;
+            #tempError := FALSE;
+        END_IF;
+    END_IF;
+
+    // 同步写回 HMI 状态
+    #ioHmi.rScaledValue := #tempScaled;
+    #ioHmi.bAlarmHH := #tempHH;
+    #ioHmi.bAlarmH := #tempH;
+    #ioHmi.bAlarmL := #tempL;
+    #ioHmi.bAlarmLL := #tempLL;
+    #ioHmi.bWireBreak := #tempWireFault;
+    #ioHmi.wStatus := #tempStatus;
+
+    // 输出赋值 (DA008: 末尾集中写入 Output)
+    #scaledValue := #tempScaled;
+    #alarmHH := #tempHH;
+    #alarmH := #tempH;
+    #alarmL := #tempL;
+    #alarmLL := #tempLL;
+    #error := #tempError;
+    #status := #tempStatus;
+END_FUNCTION

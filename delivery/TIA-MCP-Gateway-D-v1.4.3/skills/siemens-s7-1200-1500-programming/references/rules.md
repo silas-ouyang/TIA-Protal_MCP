@@ -1159,3 +1159,329 @@ END_IF;
 高速响应场景：取消勾选 Enable minimum cycle time for cyclic OBs；高通信吞吐场景：勾选并设置合理的最小循环时间（ms）
 ``
 
+
+
+---
+
+## 11. 实机编译避坑与工业顺控反模式补充规约 (CP001 - CP005 / LP001 - LP004)
+
+> **来源**：TIA Portal V20 + S7-1500 真实环境 15 个工业标准 FB/FC 及配套 UDT 通宵流水线编译与安全终审实战（`D:\TIA_MCP\benchmarks\tia_compile_anti_patterns.md`）。
+
+---
+
+### CP001 【规则 Rule】 严禁回读 VAR_OUTPUT 输出参数 (DA008 编译级铁律)
+- **适用语言**：`SCL`
+- **规范要求**：在块内任何表达式右侧（RHS）、`IF/CASE` 条件或指令实参中，**严禁读取任何 `VAR_OUTPUT` 输出参数**！所有输出状态必须先在 `VAR`（`#stat...`）或 `VAR_TEMP`（`#temp...`）中完成运算，并在块末尾集中执行一次单向写入赋值。
+- **原理与理由**：西门子 S7-1200/1500 优化块中 `VAR_OUTPUT` 参数是单向写出接口。编译器静态分析器若在代码中发现回读 `VAR_OUTPUT`，且无法证明在所有控制流分支读取前都已赋值，就会抛出 `The parameter '#xxx' might not be initialized` 编译警告。
+- **正例 / 标准写法**：
+```scl
+VAR_OUTPUT
+    contactorFwd : Bool;
+    running      : Bool;
+END_VAR
+VAR
+    statContactorFwd : Bool;
+END_VAR
+VAR_TEMP
+    tempRunning : Bool;
+END_VAR
+
+// 1. 在内部静态/临时变量中完成逻辑计算
+IF #cmdFwd AND #interlockOk THEN
+    #statContactorFwd := TRUE;
+ELSE
+    #statContactorFwd := FALSE;
+END_IF;
+
+#tempRunning := #statContactorFwd; // 读取内部变量，合法
+
+// 2. 在块末尾集中单向写出到 VAR_OUTPUT
+#contactorFwd := #statContactorFwd;
+#running      := #tempRunning;
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例：直接在逻辑中写输出参数，随后又在右侧回读
+#contactorFwd := #cmdFwd AND #interlockOk;
+#running := #contactorFwd; // 报 Warning: The parameter '#contactorFwd' might not be initialized.
+```
+
+---
+
+### CP002 【规则 Rule】 VAR_TEMP 临时变量必须在 BEGIN 首段全量赋初值 (SE002 编译级铁律)
+- **适用语言**：`SCL`
+- **规范要求**：在 `BEGIN` 关键字之后的第一段，必须无条件对 `VAR_TEMP` 中声明的**每一个变量**显式赋予安全初值（`Bool := FALSE;`、`Int := 0;`、`Real := 0.0;`、`Time := T#0s;`），严禁仅在 `IF/CASE` 分支内局部赋值。
+- **原理与理由**：`VAR_TEMP` 分配在 CPU 本地数据栈（L 栈）中，每次块调用后内存即释放复用。若仅在条件分支中赋值，当条件不满足时会残留上一扫描周期其它程序块写入的脏数据，引发执行机构偶发幽灵动作，并触发编译警告。
+- **正例 / 标准写法**：
+```scl
+VAR_TEMP
+    tempCmdFwd  : Bool;
+    tempCmdRev  : Bool;
+    tempIndex   : DInt;
+    tempTimeout : Time;
+END_VAR
+
+BEGIN
+    // 首行无条件全量显式初始化
+    #tempCmdFwd  := FALSE;
+    #tempCmdRev  := FALSE;
+    #tempIndex   := 0;
+    #tempTimeout := T#0s;
+```
+- **反例 / 禁止写法**：
+```scl
+BEGIN
+    // 错误反例：未全量初始化，直接在分支中部分赋值
+    IF #modeAuto THEN
+        #tempCmdFwd := #autoReqFwd; // 若 modeAuto=FALSE，#tempCmdFwd 值为 L 栈随机残留值！
+    END_IF;
+    #contactorFwd := #tempCmdFwd;
+```
+
+---
+
+### CP003 【规则 Rule】 FC 严禁声明 VAR 静态段，FB 定时器必用 VAR 多重背景并在空闲/故障显式复位 (AL001 编译级铁律)
+- **适用语言**：`SCL`
+- **规范要求**：
+  1. `FUNCTION`（FC）严禁包含 `VAR ... END_VAR` 静态变量段；FC 跨周期状态记忆必须通过挂载于 `VAR_IN_OUT` 的 `"UDT_HMI_xxx"` 结构体传入。
+  2. `FB` 内部所有定时器/计数器必须在 `VAR` 段声明为 `TON_TIME` 多重背景实例；且必须在 `IDLE`、`FAULT` 或复位分支显式执行 `#instTimer(IN := FALSE, PT := ...)` 复位。
+- **原理与理由**：FC 没有专属背景数据块，声明 VAR 直接引发博途语法错误。若定时器调用塞在 `IF` 单边分支里，当使能条件变为 FALSE 时定时器得不到扫描无法复位输入引脚，导致下一次无法重新触发计时。
+- **正例 / 标准写法**：
+```scl
+// FB 中声明多重背景定时器
+VAR
+    instDeadbandTimer : TON_TIME;
+END_VAR
+
+// 在 IDLE 或状态复位时显式复位定时器
+IF (#statState = #STATE_IDLE) OR #statError THEN
+    #instDeadbandTimer(IN := FALSE, PT := #tDeadband);
+ELSIF (#statState = #STATE_DEADBAND) THEN
+    #instDeadbandTimer(IN := TRUE, PT := #tDeadband);
+    IF #instDeadbandTimer.Q THEN
+        #statState := #STATE_IDLE;
+    END_IF;
+END_IF;
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例 1：在 FUNCTION 中声明静态段
+FUNCTION "FC_Test" : Void
+VAR
+    statCount : DInt; // 报语法错误：'VAR' is not allowed in a FUNCTION.
+END_VAR
+
+// 错误反例 2：定时器只在单边分支调用，无法复位
+IF (#statState = #STATE_DEADBAND) THEN
+    #instDeadbandTimer(IN := TRUE, PT := #tDeadband);
+END_IF;
+```
+
+---
+
+### CP004 【规则 Rule】 TIME/DINT/REAL 严禁隐式混算与浮点数直接判等 (PE008 编译级铁律)
+- **适用语言**：`SCL`
+- **规范要求**：
+  1. `Time` 类型与整数运算时，必须调用显式类型转换函数 `TIME_TO_DINT(...)`。
+  2. 浮点运算常量必须带小数点（写 `0.0`、`1.0`，严禁写 `0`、`1`）。
+  3. 严禁对 `REAL` 浮点数使用 `=` 或 `<>` 直接判等；边界与零值判断必须使用 `<= 0.0`、`>= 0.0` 或容差比较 `ABS(#a - #b) <= 1.0e-6`。
+- **原理与理由**：博途启用严格 IEC 类型检查后，不支持跨类型隐式算术运算；IEEE 754 浮点数存在二进制精度舍入，直接用 `=` 判等极易因微小尾数差异导致分支永远不命中。
+- **正例 / 标准写法**：
+```scl
+// 显式转换 Time 为毫秒整数 DInt 进行周期累加
+#tempDebounceMs := TIME_TO_DINT(#debounceTime);
+#statElapsedMs  := #statElapsedMs + #scanCycleMs;
+
+// 浮点数安全比较与计算
+IF (#rawMax <= #rawMin) OR (#engMax <= #engMin) THEN
+    #error := TRUE;
+    #status := 16#8200;
+ELSIF ABS(#actualValue - #setpoint) <= 1.0e-4 THEN
+    #inDeadband := TRUE;
+END_IF;
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例：Time 直接与整数相加，浮点数用 = 判等
+#statElapsed := #statElapsed + #debounceTime; // 报 Invalid data type for operator '+'
+IF #actualValue = 100.0 THEN                 // 浮点直接判等不可靠！
+    ...
+```
+
+---
+
+### CP005 【规则 Rule】 TIA V20 Openness 外部源导入依赖顺序与符号双引号/井号铁律
+- **适用语言**：`SCL`, `SimaticML`, `Openness`
+- **规范要求**：
+  1. **依赖顺序**：必须先导入并编译 `UDT_HMI_xxx` 数据类型，再导入编译引用该 UDT 的 `FB/FC`。
+  2. **局部变量井号 `#`**：块内所有局部变量（形参、静态变量、临时变量、局部常量）在代码体中 100% 强制带 `#` 前缀（如 `#eStopOk`、`#statState`）。
+  3. **全局符号双引号 `""`**：所有全局数据块名、PLC 变量名与 UDT 类型名 100% 强制带英文双引号（如 `ioHmi : "UDT_HMI_MotorRevCtrl";`）。
+- **原理与理由**：TIA V20 外部源编译器按编译单元独立解析。缺少双引号或井号会导致符号解析歧义并报 `Undefined identifier`；未按拓扑依赖顺序导入会导致 `Data type unknown` 编译致命错误。
+- **正例 / 标准写法**：
+```scl
+// 引用全局 UDT 类型带双引号
+VAR_IN_OUT
+    ioHmi : "UDT_HMI_MotorRevCtrl";
+END_VAR
+
+// 代码中局部变量 100% 带 #
+#ioHmi.bRunningFwd := #statContactorFwd;
+#error := (#statState = #STATE_FAULT);
+```
+
+---
+
+### LP001 【规则 Rule】 电机正反转状态机严禁旁路灭弧冷却死区 (工业逻辑反模式 L1)
+- **适用语言**：`SCL`
+- **规范要求**：正反转控制状态机中，**反向启动请求判断必须优先于正常停止退出条件**；且电机从运行态（正转或反转）离开时，无论是收到停止命令还是反向命令，均必须强制转移至 `STATE_DEADBAND` 冷却态（延时至少 1.0s），冷却计时未到严禁直接切回 `STATE_IDLE`。
+- **工业危害分析**：若停止条件 `IF NOT reqFwd THEN statState := IDLE` 排在换向判断之前，当操作员将旋钮从正转直接切为反转时，第 1 周期正转停止回到 `IDLE`，第 2 周期立即从 `IDLE` 启动反转，**接触器 1s 灭弧冷却死区被完全绕过**，前一接触器电弧尚未熄灭导致主回路发生相间短路爆弧！
+- **正例 / 标准写法**：
+```scl
+CASE #statState OF
+    #STATE_FWD:
+        // 核心：必须将反向请求或换向死区强制排在停止退出前！
+        IF (NOT #interlockOk) OR (NOT #eStopOk) OR (NOT #thermalTripOk) THEN
+            #statState := #STATE_FAULT;
+        ELSIF #tempReqRev THEN
+            // 换向请求：先进入灭弧死区，并记录目标方向为反转
+            #statTargetDir := 2;
+            #statState     := #STATE_DEADBAND;
+        ELSIF NOT #tempReqFwd THEN
+            // 正常停机：同样强制进入灭弧死区冷却
+            #statTargetDir := 0;
+            #statState     := #STATE_DEADBAND;
+        END_IF;
+
+    #STATE_DEADBAND:
+        #instDeadbandTimer(IN := TRUE, PT := #tReverseDeadband);
+        IF #instDeadbandTimer.Q THEN
+            #instDeadbandTimer(IN := FALSE, PT := #tReverseDeadband);
+            IF (#statTargetDir = 2) AND #tempReqRev AND #interlockOk THEN
+                #statState := #STATE_REV;
+            ELSIF (#statTargetDir = 1) AND #tempReqFwd AND #interlockOk THEN
+                #statState := #STATE_FWD;
+            ELSE
+                #statState := #STATE_IDLE;
+            END_IF;
+        END_IF;
+```
+- **反例 / 禁止写法**：
+```scl
+// 危险反例：停止退出排在反向之前，导致换向死区被旁路
+#STATE_FWD:
+    IF (NOT #interlockOk) OR (NOT #tempReqFwd) THEN
+        #statState := #STATE_IDLE; // 第1周期直接回 IDLE，第2周期从 IDLE 瞬间吸合反转！
+    ELSIF #tempReqRev THEN
+        #statTargetDir := 2;
+        #statState := #STATE_DEADBAND;
+    END_IF;
+```
+
+---
+
+### LP002 【规则 Rule】 PLCopen Execute 单次作业完成步严禁同周期跳回 IDLE 吞掉 done 脉冲 (工业逻辑反模式 L2)
+- **适用语言**：`SCL`
+- **规范要求**：遵循 PLCopen `Execute` 握手规范（`DA012`），单次异步作业步序在进入 `STEP_DONE` 后，必须保持 `done := TRUE` 至少 1 个完整扫描周期，等待调用方将输入 `execute` 置为 `FALSE` 确认后才可跳回 `STEP_IDLE`；且 `done` 与 `busy` 必须严格互斥。
+- **工业危害分析**：若在进入 `STEP_DONE` 分支的同一个扫描周期内立即将步号修改为 `#STEP_IDLE`，块末尾计算 `#done := (#statStep = #STEP_DONE)` 结果恒为 `FALSE`。上位主调度状态机永远捕获不到单次执行完成的握手脉冲，造成整线顺控永久卡死。
+- **正例 / 标准写法**：
+```scl
+CASE #statStep OF
+    #STEP_EXEC_OPERATION:
+        IF #operationComplete THEN
+            #statStep := #STEP_DONE;
+        END_IF;
+
+    #STEP_DONE:
+        // 维持在 STEP_DONE，直到外部 execute 信号跌落确认
+        IF NOT #tempExecReq THEN
+            #statStep   := #STEP_IDLE;
+            #statStatus := #STATUS_NO_CALL; // 16#7000
+        END_IF;
+END_CASE;
+
+// 块尾集中计算互斥的 PLCopen 输出
+#done := (#statStep = #STEP_DONE);
+#busy := (#statStep <> #STEP_IDLE) AND (#statStep <> #STEP_DONE) AND NOT #statError;
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例：同周期立即跳回 IDLE，吞掉 done 完成脉冲
+#STEP_DONE:
+    #ioHmi.diStoredCount := #ioHmi.diStoredCount + 1;
+    #statStep := #STEP_IDLE; // 同周期立即改回 0！
+
+// 块尾计算时 #statStep 已经是 0，#done 永远输出 FALSE！
+#done := (#statStep = #STEP_DONE);
+```
+
+---
+
+### LP003 【规则 Rule】 外部接触器 EDM 常闭辅助触点反馈回路严禁写入吸合保持条件 (工业逻辑反模式 L3)
+- **适用语言**：`SCL`
+- **规范要求**：安全继电器与急停控制中的外部设备监控回路（EDM / `feedbackLoopOk`）串联的是外部接触器的**常闭（NC）辅助触点**。该信号仅允许在复位上升沿（`STATE_WAIT_RESET -> STATE_RUN_SAFE`）作为吸合前置校验；在吸合运行期间严禁将 `NOT feedbackLoopOk` 作为持续切断条件。
+- **工业危害分析**：主接触器吸合后其常闭辅助触点必然断开，`feedbackLoopOk` 立即变为 `FALSE`。若将其作为持续运行条件，会导致安全继电器刚吸合输出一个周期，下一周期就被自身接触器的常闭辅助断开动作自切，产生高频震荡接触器打火。
+- **正例 / 标准写法**：
+```scl
+CASE #statState OF
+    #STATE_WAIT_RESET:
+        // feedbackLoopOk 仅在复位上升沿作为闭合前置校验（确认接触器未发生熔焊粘连）
+        IF #tempResetRis AND #ch1Ok AND #ch2Ok AND #feedbackLoopOk THEN
+            #statState := #STATE_RUN_SAFE;
+        END_IF;
+
+    #STATE_RUN_SAFE:
+        // 运行期间持续切断条件仅判定双急停回路，绝不判定 feedbackLoopOk！
+        IF (NOT #ch1Ok) OR (NOT #ch2Ok) THEN
+            #statState := #STATE_FAULT_TRIPPED;
+        END_IF;
+END_CASE;
+
+#safetyOutput := (#statState = #STATE_RUN_SAFE);
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例：将 feedbackLoopOk 放入吸合后的持续切断条件
+#STATE_RUN_SAFE:
+    IF (NOT #ch1Ok) OR (NOT #ch2Ok) OR (NOT #feedbackLoopOk) THEN
+        #statState := #STATE_FAULT_TRIPPED; // 接触器一吸合，NC 触点一开，下一周期立即自杀断开！
+    END_IF;
+```
+
+---
+
+### LP004 【规则 Rule】 顺序控制状态机严禁声明到位限位却漏判悬空或预备步漏开驱动 (工业逻辑反模式 L4)
+- **适用语言**：`SCL`
+- **规范要求**：顺序控制状态机的每一个步骤转移条件，必须闭环核对所有声明的到位与限位传感器（如 `atEntry`、`atExit`、`posAtLimit`）及双限位冲突互锁（`limit0 AND limit90`）；在等待进料预备步中必须保持入口输送辊道运转，禁止出现“声明了传感器却不判读”的悬空引脚或预备步漏开驱动。
+- **工业危害分析**：等待工件到达预备步若把入口驱动辊道停掉，仅靠工件惯性无法触发入口传感器导致工序停摆卡料；若声明了升降挡料板到位限位却未等待 `posAtLimit=TRUE` 即启动推料/出料，会导致机械结构在气缸未到位前强行干涉撞机。
+- **正例 / 标准写法**：
+```scl
+CASE #statStep OF
+    #STEP_WAIT_ENTRY:
+        // 1. 预备步保持入口驱动开启，确保托盘能稳定送达传感器
+        #tempEntryConv := TRUE;
+        IF #atEntry THEN
+            #statStep := #STEP_FEED_INTO_TURNTABLE;
+        END_IF;
+
+    #STEP_EJECT:
+        // 2. 先等待限位到位传感器闭环确认，再启动出料电机
+        #posRaise := TRUE;
+        IF #posAtLimit THEN
+            #convBases := TRUE; // 挡料板完全抬起后才启动传送带，杜绝撞机
+            IF #partLeaving THEN
+                #statStep := #STEP_DONE;
+            END_IF;
+        END_IF;
+END_CASE;
+```
+- **反例 / 禁止写法**：
+```scl
+// 错误反例：预备步停转入口辊道，且动作步不判限位
+#STEP_WAIT_ENTRY:
+    #tempEntryConv := FALSE; // 托盘在交界处失去动力停摆，卡在入口前
+    IF #atEntry THEN #statStep := 30; END_IF;
+
+#STEP_EJECT:
+    #posRaise  := TRUE;
+    #convBases := TRUE; // 挡料板还在上升途中就直接开皮带，拉扯工件撞坏工装！
+```

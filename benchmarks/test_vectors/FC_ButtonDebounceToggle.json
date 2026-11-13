@@ -1,0 +1,894 @@
+{
+  "blockId": "A06",
+  "blockName": "FC_ButtonDebounceToggle",
+  "udtName": "UDT_HMI_ButtonDebounce",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "rawButton": false,
+      "eStopOk": true,
+      "reset": false,
+      "scanCycleMs": 10
+    },
+    "ioHmi": {
+      "bHmiToggleCmd": false,
+      "bHmiForceOn": false,
+      "bHmiForceOff": false,
+      "tDebounceTime": "T#50ms",
+      "tElapsedMs": 0,
+      "bDebouncedState": false,
+      "bPrevDebounced": false,
+      "bToggleOut": false,
+      "wStatus": "16#0000"
+    },
+    "internalState": {}
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：按钮未按下(rawButton=FALSE)，急停正常，各脉冲与翻转输出均为FALSE，status=16#0000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "初始待机状态，debouncedOut=FALSE，toggleState=FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：物理按钮防抖滤除抖动(毛刺滤除) -> 稳定按下置位开机 -> 释放 -> 再次按下翻转停机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "输入20ms短毛刺脉冲(<50ms)，防抖生效，debouncedOut维持FALSE",
+          "scanCycleOrDuration": "20ms",
+          "elapsedTimeMs": 20,
+          "inputs": {
+            "rawButton": true,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 20
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 20,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 20,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "按钮持续保持高电平满60ms(>=50ms)，防抖确认，产生risingPulse=TRUE，toggleState翻转为TRUE",
+          "scanCycleOrDuration": "40ms",
+          "elapsedTimeMs": 60,
+          "inputs": {
+            "rawButton": true,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 40
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 20,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 20,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": true,
+            "risingPulse": true,
+            "fallingPulse": false,
+            "toggleState": true,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "下一个扫描周期持续按下，risingPulse单周期脉冲结束变为FALSE，toggleState自锁维持TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 70,
+          "inputs": {
+            "rawButton": true,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": true,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": true,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "按钮松开保持60ms，debouncedOut变为FALSE，产生fallingPulse=TRUE，toggleState仍自锁为TRUE",
+          "scanCycleOrDuration": "60ms",
+          "elapsedTimeMs": 130,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 60
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": true,
+            "toggleState": true,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "再次按下满60ms，产生第2次risingPulse，toggleState由TRUE翻转为FALSE实现单键启停",
+          "scanCycleOrDuration": "60ms",
+          "elapsedTimeMs": 190,
+          "inputs": {
+            "rawButton": true,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 60
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": true,
+            "risingPulse": true,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停切断：输出保持在开机(toggleState=TRUE)时eStopOk掉为FALSE，强制置位关机且报ERR_ESTOP(16#8401)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "急停激活，toggleState硬切断为FALSE，status=16#8401",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 200,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": false,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时尝试开机：eStopOk=FALSE期间尝试按键或HMI bHmiForceOn=TRUE，输出锁定禁止开机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "急停未解除，下发HMI强制开机，最高优急停联锁屏蔽开机请求，维持16#8401与toggleState=FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 210,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": false,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bHmiForceOn": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bHmiForceOn": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "物理按钮卡死常闭故障：按钮长时间维持高电平，脉冲只在首次跳变触发，双稳态输出稳定锁存不振荡",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "按钮卡死导通，debouncedOut=TRUE，risingPulse仅第1周期为TRUE，随后周期不再重复翻转",
+          "scanCycleOrDuration": "100ms",
+          "elapsedTimeMs": 310,
+          "inputs": {
+            "rawButton": true,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 100
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": true,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": true,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": true,
+            "bPrevDebounced": true,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "高频抖动干扰连续抑制：输入交替10ms跳变，累计时间未达50ms时反复清零，杜绝误触发",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "信号抖动在0和1之间快速波动，计时清零，debouncedOut维持原有稳定电平",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 320,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：HMI软触发命令(bHmiToggleCmd / bHmiForceOn / bHmiForceOff)与物理按钮混合控制",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "通过ioHmi.bHmiForceOn强制开机，toggleState置位为TRUE，bHmiForceOn自动复位",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 330,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": true,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bHmiForceOn": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bHmiForceOn": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "通过ioHmi.bHmiToggleCmd执行软翻转，toggleState由TRUE翻转为FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 340,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": true,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": true,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bHmiToggleCmd": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bHmiToggleCmd": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "命令优先级冲突：bHmiForceOn与bHmiForceOff同时为TRUE时，关机高优生效",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "bHmiForceOn与bHmiForceOff并发下发，关机指令最高优先，toggleState置FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 350,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": false,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": true,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": true,
+            "bHmiForceOff": true,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": true,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "外部硬件强制复位(reset=TRUE)与急停解除后状态机恢复正常STATUS_OK(16#0000)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "急停恢复为TRUE，执行reset=TRUE，状态字恢复16#0000，防抖计时器与输出清零",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 360,
+          "inputs": {
+            "rawButton": false,
+            "eStopOk": true,
+            "reset": true,
+            "scanCycleMs": 10
+          },
+          "ioHmi_in": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 10,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bHmiToggleCmd": false,
+            "bHmiForceOn": false,
+            "bHmiForceOff": false,
+            "tDebounceTime": "T#50ms",
+            "tElapsedMs": 10,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "debouncedOut": false,
+            "risingPulse": false,
+            "fallingPulse": false,
+            "toggleState": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "tElapsedMs": 0,
+            "bDebouncedState": false,
+            "bPrevDebounced": false,
+            "bToggleOut": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

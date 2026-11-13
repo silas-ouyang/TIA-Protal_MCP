@@ -1,0 +1,491 @@
+﻿FUNCTION_BLOCK "FB_FIO_Assembler"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常（常闭健康为 TRUE）
+      startBtn : Bool;   // 启动按钮
+      stopBtn : Bool;   // 停止按钮（常闭健康为 TRUE）
+      resetBtn : Bool;   // 复位按钮
+      lidAtPlace : Bool;   // 盖板工位到位光电传感器
+      baseAtPlace : Bool;   // 底座工位到位光电传感器
+      partLeaving : Bool;   // 装配成品离开工位光电传感器
+      lidClamped : Bool;   // 盖板定位夹紧到位反馈
+      baseClamped : Bool;   // 底座定位夹紧到位反馈
+      posAtLimit : Bool;   // 底座挡料升降气缸到位反馈
+      movingX : Bool;   // 机械手X轴移动中反馈
+      movingZ : Bool;   // 机械手Z轴移动中反馈
+      itemDetected : Bool;   // 吸盘抓取到盖板检测反馈
+   END_VAR
+
+   VAR_OUTPUT 
+      convLids : Bool;   // 盖板传送带电机
+      convBases : Bool;   // 底座传送带电机
+      clampLid : Bool;   // 盖板定位夹紧气缸
+      clampBase : Bool;   // 底座定位夹紧气缸
+      posRaise : Bool;   // 底座放行挡板抬起气缸
+      moveX : Bool;   // 机械手X轴移向底座装配工位
+      moveZ : Bool;   // 机械手Z轴下降
+      grab : Bool;   // 机械手真空吸盘
+      error : Bool;   // 故障标志
+      status : Word;   // 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_Assembler";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statStep : Int;   // 0:IDLE, 10:FEED_BOTH, 20:CLAMP_BOTH, 30:Z_DOWN_LID, 40:GRAB_LID, 50:Z_UP_LID, 60:X_TO_BASE, 70:Z_DOWN_ASSY, 80:RELEASE_ASSY, 90:Z_UP_HOME_EJECT, 99:FAULT
+      statRunning : Bool;
+      statStopReq : Bool;
+      statStartOld : Bool;
+      statResetOld : Bool;
+      instDelayTimer : TON_TIME;   // 动作保持延时定时器
+      instWatchdog : TON_TIME;   // 工位超时看门狗定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempStartRise : Bool;
+      tempResetRise : Bool;
+      tempDelay : Time;
+      tempTimeout : Time;
+      tempConvLids : Bool;
+      tempConvBases : Bool;
+      tempClampLid : Bool;
+      tempClampBase : Bool;
+      tempPosRaise : Bool;
+      tempMoveX : Bool;
+      tempMoveZ : Bool;
+      tempGrab : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STEP_IDLE : Int := 0;
+      STEP_FEED_BOTH : Int := 10;
+      STEP_CLAMP_BOTH : Int := 20;
+      STEP_Z_DOWN_LID : Int := 30;
+      STEP_GRAB_LID : Int := 40;
+      STEP_Z_UP_LID : Int := 50;
+      STEP_X_TO_BASE : Int := 60;
+      STEP_Z_DOWN_ASSY : Int := 70;
+      STEP_RELEASE_ASSY : Int := 80;
+      STEP_EJECT : Int := 90;
+      STEP_FAULT : Int := 99;
+      STATUS_OK : Word := 16#0000;
+      STATUS_IDLE : Word := 16#7000;
+      ERR_TIMEOUT : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempStartRise := FALSE;
+    #tempResetRise := FALSE;
+    #tempDelay := T#500ms;
+    #tempTimeout := T#6s;
+    #tempConvLids := FALSE;
+    #tempConvBases := FALSE;
+    #tempClampLid := FALSE;
+    #tempClampBase := FALSE;
+    #tempPosRaise := FALSE;
+    #tempMoveX := FALSE;
+    #tempMoveZ := FALSE;
+    #tempGrab := FALSE;
+
+    // 参数时间获取与保护
+    IF #ioHmi.tActionDelay > T#0s THEN
+        #tempDelay := #ioHmi.tActionDelay;
+    ELSE
+        #tempDelay := T#500ms;
+    END_IF;
+
+    IF #ioHmi.tStepTimeout > T#0s THEN
+        #tempTimeout := #ioHmi.tStepTimeout;
+    ELSE
+        #tempTimeout := T#6s;
+    END_IF;
+
+    // 按钮取沿
+    #tempStartRise := (#startBtn OR #ioHmi.bStartCmd) AND (NOT #statStartOld);
+    #statStartOld := #startBtn OR #ioHmi.bStartCmd;
+    IF #ioHmi.bStartCmd THEN #ioHmi.bStartCmd := FALSE; END_IF;
+
+    #tempResetRise := (#resetBtn OR #ioHmi.bResetCmd) AND (NOT #statResetOld);
+    #statResetOld := #resetBtn OR #ioHmi.bResetCmd;
+    IF #ioHmi.bResetCmd THEN #ioHmi.bResetCmd := FALSE; END_IF;
+
+    // 停止按钮处理（常闭，FALSE=按下）
+    IF (NOT #stopBtn) OR #ioHmi.bStopCmd THEN
+        #statStopReq := TRUE;
+    END_IF;
+    IF #ioHmi.bStopCmd THEN #ioHmi.bStopCmd := FALSE; END_IF;
+
+    // 复位处理
+    IF #tempResetRise AND (#statStep = #STEP_FAULT) AND #eStopOk THEN
+        #statStep := #STEP_IDLE;
+        #statRunning := FALSE;
+        #statStopReq := FALSE;
+    END_IF;
+
+    // 急停处理 (最高优)
+    IF NOT #eStopOk THEN
+        #statStep := #STEP_FAULT;
+        #statRunning := FALSE;
+    END_IF;
+
+    // 模式与顺控状态机
+    IF #ioHmi.bManualMode THEN
+        #statRunning := FALSE;
+        #statStep := #STEP_IDLE;
+        #tempConvLids := FALSE;
+        #tempConvBases := FALSE;
+        #tempClampLid := FALSE;
+        #tempClampBase := FALSE;
+        #tempPosRaise := FALSE;
+        #tempMoveX := FALSE;
+        #tempMoveZ := FALSE;
+        #tempGrab := FALSE;
+    ELSE
+        CASE #statStep OF
+            #STEP_IDLE:
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := FALSE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := FALSE;
+                #statRunning := FALSE;
+                #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                IF #tempStartRise AND #eStopOk THEN
+                    #statRunning := TRUE;
+                    #statStopReq := FALSE;
+                    #statStep := #STEP_FEED_BOTH;
+                END_IF;
+
+            #STEP_FEED_BOTH:
+                // 1. 分别驱动两传送带至到位传感器
+                #tempConvLids := NOT #lidAtPlace;
+                #tempConvBases := NOT #baseAtPlace;
+                #tempClampLid := FALSE;
+                #tempClampBase := FALSE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := FALSE;
+                #statRunning := TRUE;
+
+                IF #statStopReq AND (NOT #lidAtPlace) AND (NOT #baseAtPlace) THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_IDLE;
+                    #statRunning := FALSE;
+                    #statStopReq := FALSE;
+                ELSE
+                    #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                    IF #instWatchdog.Q THEN
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_FAULT;
+                        #statRunning := FALSE;
+                        #tempConvLids := FALSE;
+                        #tempConvBases := FALSE;
+                    ELSIF #lidAtPlace AND #baseAtPlace THEN
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_CLAMP_BOTH;
+                    END_IF;
+                END_IF;
+
+            #STEP_CLAMP_BOTH:
+                // 2. 夹紧定位
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := TRUE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := FALSE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #lidClamped AND #baseClamped THEN
+                    #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                    IF #instDelayTimer.Q THEN
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_Z_DOWN_LID;
+                    END_IF;
+                ELSE
+                    #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                END_IF;
+
+            #STEP_Z_DOWN_LID:
+                // 3. Z轴下降吸取盖板
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := TRUE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := TRUE;
+                #tempGrab := FALSE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF NOT #movingZ THEN
+                    #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                    IF #instDelayTimer.Q THEN
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_GRAB_LID;
+                    END_IF;
+                ELSE
+                    #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                END_IF;
+
+            #STEP_GRAB_LID:
+                // 吸取盖板，松开 clampLid
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := TRUE;
+                #tempGrab := TRUE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #itemDetected THEN
+                    #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                    IF #instDelayTimer.Q THEN
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_Z_UP_LID;
+                    END_IF;
+                ELSE
+                    #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                END_IF;
+
+            #STEP_Z_UP_LID:
+                // 4. Z轴上升到位
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := TRUE;
+                #statRunning := TRUE;
+
+                IF NOT #itemDetected THEN
+                    #statStep := #STEP_FAULT;
+                ELSE
+                    #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                    IF #instWatchdog.Q THEN
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_FAULT;
+                    ELSIF NOT #movingZ THEN
+                        #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                        IF #instDelayTimer.Q THEN
+                            #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                            #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                            #statStep := #STEP_X_TO_BASE;
+                        END_IF;
+                    ELSE
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                    END_IF;
+                END_IF;
+
+            #STEP_X_TO_BASE:
+                // X轴移至底座上方 (防撞保证：Z轴处于上位且静止才允许使能X轴)
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := (NOT #movingZ);
+                #tempMoveZ := FALSE;
+                #tempGrab := TRUE;
+                #statRunning := TRUE;
+
+                IF NOT #itemDetected THEN
+                    #statStep := #STEP_FAULT;
+                ELSE
+                    #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                    IF #instWatchdog.Q THEN
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_FAULT;
+                    ELSIF (NOT #movingX) AND (NOT #movingZ) THEN
+                        #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                        IF #instDelayTimer.Q THEN
+                            #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                            #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                            #statStep := #STEP_Z_DOWN_ASSY;
+                        END_IF;
+                    ELSE
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                    END_IF;
+                END_IF;
+
+            #STEP_Z_DOWN_ASSY:
+                // Z轴下降将盖板压装到底座上
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := TRUE;
+                #tempMoveZ := TRUE;
+                #tempGrab := TRUE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF NOT #movingZ THEN
+                    #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                    IF #instDelayTimer.Q THEN
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_RELEASE_ASSY;
+                    END_IF;
+                ELSE
+                    #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                END_IF;
+
+            #STEP_RELEASE_ASSY:
+                // 释放真空
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := TRUE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := TRUE;
+                #tempMoveZ := TRUE;
+                #tempGrab := FALSE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF NOT #itemDetected THEN
+                    #instDelayTimer(IN := TRUE, PT := #tempDelay);
+                    IF #instDelayTimer.Q THEN
+                        #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                        #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                        #statStep := #STEP_EJECT;
+                    END_IF;
+                ELSE
+                    #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                END_IF;
+
+            #STEP_EJECT:
+                // 5. Z轴上升并X轴回原位，松开夹紧，抬起挡料板，到位后送出成品
+                #tempConvLids := FALSE;
+                #tempConvBases := #posAtLimit AND (NOT #movingZ);
+                #tempClampLid := FALSE;
+                #tempClampBase := FALSE;
+                #tempPosRaise := TRUE;
+                // 防撞联锁：Z轴上升且静止后X轴缩回
+                #tempMoveZ := FALSE;
+                #tempMoveX := #movingZ; // 若Z还在动则保持X，Z静止到位后X立即为FALSE缩回
+                #tempGrab := FALSE;
+                #statRunning := TRUE;
+
+                #instWatchdog(IN := TRUE, PT := #tempTimeout);
+                IF #instWatchdog.Q THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #statStep := #STEP_FAULT;
+                ELSIF #partLeaving THEN
+                    #instWatchdog(IN := FALSE, PT := #tempTimeout);
+                    #ioHmi.diAssembledCount := #ioHmi.diAssembledCount + 1;
+                    IF #statStopReq THEN
+                        #statStep := #STEP_IDLE;
+                        #statRunning := FALSE;
+                        #statStopReq := FALSE;
+                    ELSE
+                        #statStep := #STEP_FEED_BOTH;
+                    END_IF;
+                END_IF;
+
+            #STEP_FAULT:
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := FALSE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := FALSE;
+                #statRunning := FALSE;
+                #instDelayTimer(IN := FALSE, PT := #tempDelay);
+                #instWatchdog(IN := FALSE, PT := #tempTimeout);
+
+            ELSE:
+                #statStep := #STEP_IDLE;
+                #tempConvLids := FALSE;
+                #tempConvBases := FALSE;
+                #tempClampLid := FALSE;
+                #tempClampBase := FALSE;
+                #tempPosRaise := FALSE;
+                #tempMoveX := FALSE;
+                #tempMoveZ := FALSE;
+                #tempGrab := FALSE;
+                #statRunning := FALSE;
+        END_CASE;
+    END_IF;
+
+    // 急停硬切断
+    IF NOT #eStopOk THEN
+        #tempConvLids := FALSE;
+        #tempConvBases := FALSE;
+        #tempClampLid := FALSE;
+        #tempClampBase := FALSE;
+        #tempPosRaise := FALSE;
+        #tempMoveX := FALSE;
+        #tempMoveZ := FALSE;
+        #tempGrab := FALSE;
+    END_IF;
+
+    // 状态码解算
+    IF NOT #eStopOk THEN
+        #ioHmi.wStatus := #ERR_ESTOP;
+    ELSIF #statStep = #STEP_FAULT THEN
+        #ioHmi.wStatus := #ERR_TIMEOUT;
+    ELSIF #statRunning THEN
+        #ioHmi.wStatus := #STATUS_OK;
+    ELSE
+        #ioHmi.wStatus := #STATUS_IDLE;
+    END_IF;
+
+    // 同步写回 ioHmi 状态
+    #ioHmi.iCurrentStep := #statStep;
+    #ioHmi.bRunning := #statRunning;
+    #ioHmi.bFault := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #convLids := #tempConvLids AND #eStopOk;
+    #convBases := #tempConvBases AND #eStopOk;
+    #clampLid := #tempClampLid AND #eStopOk;
+    #clampBase := #tempClampBase AND #eStopOk;
+    #posRaise := #tempPosRaise AND #eStopOk;
+    #moveX := #tempMoveX AND #eStopOk;
+    #moveZ := #tempMoveZ AND #eStopOk;
+    #grab := #tempGrab AND #eStopOk;
+    #error := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #status := #ioHmi.wStatus;
+END_FUNCTION_BLOCK

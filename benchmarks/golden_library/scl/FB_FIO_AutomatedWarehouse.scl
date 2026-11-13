@@ -1,0 +1,393 @@
+﻿FUNCTION_BLOCK "FB_FIO_AutomatedWarehouse"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停正常（常闭健康为 TRUE）
+      execute : Bool;   // 触发单次入库/出库作业（上升沿）
+      modeRetrieve : Bool;   // FALSE: 入库(从I/O台到库位), TRUE: 出库(从库位到I/O台)
+      targetCell : Int;   // 目标库位编号 (1..54)
+      atEntry : Bool;   // 入库上料台托盘到位光电
+      atExit : Bool;   // 出库下料台空闲光电（FALSE表示空闲可放料）
+      movingX : Bool;   // 堆垛机X轴移动中反馈
+      movingZ : Bool;   // 堆垛机Z轴移动中反馈
+      atLeft : Bool;   // 货叉左伸（上料侧）到位限位
+      atMiddle : Bool;   // 货叉中位（安全居中）限位
+      atRight : Bool;   // 货叉右伸（货架侧/下料侧）到位限位
+      reset : Bool;   // 故障复位
+   END_VAR
+
+   VAR_OUTPUT 
+      targetPosition : Int;   // 堆垛机目标位置给定（0=上/下料位, 1..54=货架库位, 55=归位）
+      forksLeft : Bool;   // 货叉向左伸出（取上料台托盘）
+      forksRight : Bool;   // 货叉向右伸出（存/取货架或放料台）
+      lift : Bool;   // 货叉微升（TRUE=抬起托盘，FALSE=落下托盘）
+      done : Bool;   // 单次存取作业完成
+      busy : Bool;   // 作业执行中
+      error : Bool;   // 故障标志
+      status : Word;   // PLCopen 状态码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_FIO_Warehouse";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statStep : Int;   // 0:IDLE, 10:MOVE_SRC, 20:FORK_EXT_PICK, 30:LIFT_UP, 40:FORK_RET_PICK, 50:MOVE_DST, 60:FORK_EXT_PLACE, 70:LIFT_DOWN, 80:FORK_RET_PLACE, 90:DONE, 99:FAULT
+      statCell : Int;
+      statIsRetrieve : Bool;
+      statExecOld : Bool;
+      statStatus : Word := 16#7000;
+      instSettleTimer : TON_TIME;   // 微升/寻址稳定定时器
+      instMoveWatchdog : TON_TIME;   // 寻址与货叉超时定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempExecReq : Bool;
+      tempExecRise : Bool;
+      tempCell : Int;
+      tempRetrieve : Bool;
+      tempAxisStill : Bool;
+      tempTargetPos : Int;
+      tempForkL : Bool;
+      tempForkR : Bool;
+      tempLift : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      POS_IO_STATION : Int := 55;
+      MIN_CELL : Int := 1;
+      MAX_CELL : Int := 54;
+      STEP_IDLE : Int := 0;
+      STEP_MOVE_SRC : Int := 10;
+      STEP_FORK_EXT_PICK : Int := 20;
+      STEP_LIFT_UP : Int := 30;
+      STEP_FORK_RET_PICK : Int := 40;
+      STEP_MOVE_DST : Int := 50;
+      STEP_FORK_EXT_PLACE : Int := 60;
+      STEP_LIFT_DOWN : Int := 70;
+      STEP_FORK_RET_PLACE : Int := 80;
+      STEP_DONE : Int := 90;
+      STEP_FAULT : Int := 99;
+      STATUS_FINISHED : Word := 16#0000;
+      STATUS_NO_CALL : Word := 16#7000;
+      STATUS_BUSY : Word := 16#7002;
+      ERR_CELL_RANGE : Word := 16#8200;
+      ERR_TIMEOUT : Word := 16#8401;
+      ERR_ESTOP : Word := 16#8402;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempExecReq := FALSE;
+    #tempExecRise := FALSE;
+    #tempCell := 0;
+    #tempRetrieve := FALSE;
+    #tempAxisStill := FALSE;
+    #tempTargetPos := #ioHmi.iActiveTargetPos;
+    #tempForkL := FALSE;
+    #tempForkR := FALSE;
+    #tempLift := FALSE;
+
+    // 参数时间获取与保护
+    IF #ioHmi.tAxisSettleTime <= T#0s THEN
+        #ioHmi.tAxisSettleTime := T#800ms;
+    END_IF;
+
+    IF #ioHmi.tMoveTimeout <= T#0s THEN
+        #ioHmi.tMoveTimeout := T#10s;
+    END_IF;
+
+    // 堆垛机静止标志
+    #tempAxisStill := (NOT #movingX) AND (NOT #movingZ);
+
+    // 作业触发上升沿
+    #tempExecReq := #execute OR #ioHmi.bExecuteCmd;
+    #tempExecRise := #tempExecReq AND (NOT #statExecOld);
+    #statExecOld := #tempExecReq;
+
+    // 目标库位与模式获取
+    IF #ioHmi.iTargetCell > 0 THEN
+        #tempCell := #ioHmi.iTargetCell;
+    ELSE
+        #tempCell := #targetCell;
+    END_IF;
+
+    #tempRetrieve := #modeRetrieve OR #ioHmi.bModeRetrieve;
+
+    // 清除 HMI 触发标志
+    IF #ioHmi.bExecuteCmd THEN
+        #ioHmi.bExecuteCmd := FALSE;
+    END_IF;
+
+    // 复位处理
+    IF #reset OR #ioHmi.bResetCmd THEN
+        #ioHmi.bResetCmd := FALSE;
+        IF (#statStep = #STEP_FAULT) AND #eStopOk THEN
+            #statStep := #STEP_IDLE;
+            #statStatus := #STATUS_NO_CALL;
+        END_IF;
+    END_IF;
+
+    // 急停处理
+    IF NOT #eStopOk THEN
+        #statStep := #STEP_FAULT;
+        #statStatus := #ERR_ESTOP;
+    END_IF;
+
+    // 状态机处理
+    CASE #statStep OF
+        #STEP_IDLE:
+            #tempTargetPos := #ioHmi.iActiveTargetPos;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+            #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+            #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+
+            IF #tempExecRise AND #eStopOk THEN
+                // 1. 参数合法性前置校验 (Rule SE001)
+                IF (#tempCell < #MIN_CELL) OR (#tempCell > #MAX_CELL) THEN
+                    #statStatus := #ERR_CELL_RANGE;
+                    #statStep := #STEP_FAULT;
+                ELSE
+                    #statCell := #tempCell;
+                    #statIsRetrieve := #tempRetrieve;
+                    #statStep := #STEP_MOVE_SRC;
+                    #statStatus := #STATUS_BUSY;
+                END_IF;
+            END_IF;
+
+        #STEP_MOVE_SRC:
+            // 移动到源位置
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #statCell;
+            ELSE
+                #tempTargetPos := #POS_IO_STATION;
+            END_IF;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSIF #tempAxisStill AND #atMiddle AND (#statIsRetrieve OR #atEntry) THEN
+                #instSettleTimer(IN := TRUE, PT := #ioHmi.tAxisSettleTime);
+                IF #instSettleTimer.Q THEN
+                    #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+                    #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                    #statStep := #STEP_FORK_EXT_PICK;
+                END_IF;
+            ELSE
+                #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+            END_IF;
+
+        #STEP_FORK_EXT_PICK:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #statCell;
+                #tempForkR := TRUE;
+                #tempForkL := FALSE;
+            ELSE
+                #tempTargetPos := #POS_IO_STATION;
+                #tempForkL := TRUE;
+                #tempForkR := FALSE;
+            END_IF;
+            #tempLift := FALSE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSE
+                IF (#statIsRetrieve AND #atRight) OR ((NOT #statIsRetrieve) AND #atLeft) THEN
+                    #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                    #statStep := #STEP_LIFT_UP;
+                END_IF;
+            END_IF;
+
+        #STEP_LIFT_UP:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #statCell;
+                #tempForkR := TRUE;
+                #tempForkL := FALSE;
+            ELSE
+                #tempTargetPos := #POS_IO_STATION;
+                #tempForkL := TRUE;
+                #tempForkR := FALSE;
+            END_IF;
+            #tempLift := TRUE;
+
+            #instSettleTimer(IN := TRUE, PT := #ioHmi.tAxisSettleTime);
+            IF #instSettleTimer.Q THEN
+                #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+                #statStep := #STEP_FORK_RET_PICK;
+            END_IF;
+
+        #STEP_FORK_RET_PICK:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #statCell;
+            ELSE
+                #tempTargetPos := #POS_IO_STATION;
+            END_IF;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := TRUE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSIF #atMiddle THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStep := #STEP_MOVE_DST;
+            END_IF;
+
+        #STEP_MOVE_DST:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #POS_IO_STATION;
+            ELSE
+                #tempTargetPos := #statCell;
+            END_IF;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := TRUE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSIF #tempAxisStill AND #atMiddle AND ((NOT #statIsRetrieve) OR (NOT #atExit)) THEN
+                #instSettleTimer(IN := TRUE, PT := #ioHmi.tAxisSettleTime);
+                IF #instSettleTimer.Q THEN
+                    #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+                    #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                    #statStep := #STEP_FORK_EXT_PLACE;
+                END_IF;
+            ELSE
+                #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+            END_IF;
+
+        #STEP_FORK_EXT_PLACE:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #POS_IO_STATION;
+            ELSE
+                #tempTargetPos := #statCell;
+            END_IF;
+            #tempForkR := TRUE;
+            #tempForkL := FALSE;
+            #tempLift := TRUE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSIF #atRight THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStep := #STEP_LIFT_DOWN;
+            END_IF;
+
+        #STEP_LIFT_DOWN:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #POS_IO_STATION;
+            ELSE
+                #tempTargetPos := #statCell;
+            END_IF;
+            #tempForkR := TRUE;
+            #tempForkL := FALSE;
+            #tempLift := FALSE;
+
+            #instSettleTimer(IN := TRUE, PT := #ioHmi.tAxisSettleTime);
+            IF #instSettleTimer.Q THEN
+                #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+                #statStep := #STEP_FORK_RET_PLACE;
+            END_IF;
+
+        #STEP_FORK_RET_PLACE:
+            IF #statIsRetrieve THEN
+                #tempTargetPos := #POS_IO_STATION;
+            ELSE
+                #tempTargetPos := #statCell;
+            END_IF;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+
+            #instMoveWatchdog(IN := TRUE, PT := #ioHmi.tMoveTimeout);
+            IF #instMoveWatchdog.Q THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                #statStatus := #ERR_TIMEOUT;
+                #statStep := #STEP_FAULT;
+            ELSIF #atMiddle THEN
+                #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+                IF #statIsRetrieve THEN
+                    #ioHmi.diRetrievedCount := #ioHmi.diRetrievedCount + 1;
+                ELSE
+                    #ioHmi.diStoredCount := #ioHmi.diStoredCount + 1;
+                END_IF;
+                #statStatus := #STATUS_FINISHED;
+                #statStep := #STEP_DONE;
+            END_IF;
+
+        #STEP_DONE:
+            #tempTargetPos := #ioHmi.iActiveTargetPos;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+            #statStatus := #STATUS_FINISHED;
+            // PLCopen Execute 握手规范：保持 done=TRUE 至少1个完整扫描周期，直到 execute 释放后回 IDLE
+            IF NOT #tempExecReq THEN
+                #statStep := #STEP_IDLE;
+                #statStatus := #STATUS_NO_CALL;
+            END_IF;
+
+        #STEP_FAULT:
+            #tempTargetPos := #ioHmi.iActiveTargetPos;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+            #instSettleTimer(IN := FALSE, PT := #ioHmi.tAxisSettleTime);
+            #instMoveWatchdog(IN := FALSE, PT := #ioHmi.tMoveTimeout);
+
+        ELSE:
+            #statStep := #STEP_IDLE;
+            #tempTargetPos := #ioHmi.iActiveTargetPos;
+            #tempForkL := FALSE;
+            #tempForkR := FALSE;
+            #tempLift := FALSE;
+    END_CASE;
+
+    // 堆垛机防撞核心铁律：只有当货叉完全处于中位时才允许改变目标位置，否则保持当前位置
+    IF #atMiddle AND (NOT #tempForkL) AND (NOT #tempForkR) THEN
+        #ioHmi.iActiveTargetPos := #tempTargetPos;
+    END_IF;
+
+    // 急停块尾硬切断
+    IF NOT #eStopOk THEN
+        #tempForkL := FALSE;
+        #tempForkR := FALSE;
+        #tempLift := FALSE;
+    END_IF;
+
+    // 同步写回 ioHmi 状态
+    #ioHmi.iCurrentStep := #statStep;
+    #ioHmi.bBusy := (#statStep <> #STEP_IDLE) AND (#statStep <> #STEP_DONE) AND (#statStep <> #STEP_FAULT);
+    #ioHmi.bDone := (#statStep = #STEP_DONE);
+    #ioHmi.bFault := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #ioHmi.wStatus := #statStatus;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #targetPosition := #ioHmi.iActiveTargetPos;
+    #forksLeft := #tempForkL AND #eStopOk;
+    #forksRight := #tempForkR AND #eStopOk;
+    #lift := #tempLift AND #eStopOk;
+    #done := (#statStep = #STEP_DONE);
+    #busy := (#statStep <> #STEP_IDLE) AND (#statStep <> #STEP_DONE) AND (#statStep <> #STEP_FAULT);
+    #error := (#statStep = #STEP_FAULT) OR (NOT #eStopOk);
+    #status := #statStatus;
+END_FUNCTION_BLOCK

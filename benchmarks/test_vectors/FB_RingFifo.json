@@ -1,0 +1,1023 @@
+{
+  "blockId": "A05",
+  "blockName": "FB_RingFifo",
+  "udtName": "UDT_HMI_RingFifo",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "enqueue": false,
+      "dequeue": false,
+      "itemIn": 0,
+      "clear": false
+    },
+    "ioHmi": {
+      "bManualEnqueue": false,
+      "bManualDequeue": false,
+      "bClearCmd": false,
+      "diManualItemIn": 0,
+      "diLastItemOut": 0,
+      "diHeadPreview": 0,
+      "iCount": 0,
+      "bIsEmpty": true,
+      "bIsFull": false,
+      "bError": false,
+      "wStatus": "16#0000"
+    },
+    "internalState": {
+      "statHead": 0,
+      "statTail": 0,
+      "statCount": 0,
+      "statLastOut": 0,
+      "statEnqOld": false,
+      "statDeqOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：环形FIFO队列为空，count=0，isEmpty=TRUE，isFull=FALSE，status=16#0000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "初始待机状态，无入队出队脉冲，各状态标志正常",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：先入先出(FIFO)连续压入3个数据并顺序弹出，队首预览与计数严格匹配",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "入队1001，count=1，isEmpty=FALSE，diHeadPreview=1001",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 10,
+          "inputs": {
+            "enqueue": true,
+            "dequeue": false,
+            "itemIn": 1001,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "入队触发信号复位：enqueue=FALSE 释放使能边沿，队列状态保持 count=1",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 15,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "入队2002，count=2，diHeadPreview保持1001",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 20,
+          "inputs": {
+            "enqueue": true,
+            "dequeue": false,
+            "itemIn": 2002,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 2,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 2,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 2,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "出队第1个元素，弹出1001，count=1，新的diHeadPreview变为2002",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 30,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": true,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 2,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 1001,
+            "iCount": 2,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 1001,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "出队触发信号复位：dequeue=FALSE 释放使能边沿，队列状态保持 count=1",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 35,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 1001,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 6,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "出队第2个元素，弹出2002，队列变空(count=0)，isEmpty=TRUE，diHeadPreview=0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 40,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": true,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 1001,
+            "diHeadPreview": 2002,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 2002,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 2002,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 2002,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停/紧急清空：在队列有数据时施加外部clear=TRUE，队列瞬间全部复位清零",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "队列非空时触发clear=TRUE，指针与计数器立即复位为0，isEmpty置TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": true
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 2002,
+            "diHeadPreview": 555,
+            "iCount": 5,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 2002,
+            "diHeadPreview": 555,
+            "iCount": 5,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "清空联锁有效时尝试写入：clear=TRUE持续置位期间下发enqueue脉冲，入队被拦截禁止",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "clear保持TRUE，同时尝试enqueue=TRUE写入999，队列维持count=0与isEmpty=TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 60,
+          "inputs": {
+            "enqueue": true,
+            "dequeue": false,
+            "itemIn": 999,
+            "clear": true
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "空队下溢冲突：队列已空(count=0)时施加出队脉冲dequeue=TRUE，触发ERR_QUEUE_EMPTY(16#8002)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "空队下触发出队，置位16#8002，error=TRUE，count保持0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 70,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": true,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": true,
+            "status": "16#8002"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": true,
+            "wStatus": "16#8002"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": true,
+            "wStatus": "16#8002"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "满队溢出边界保护：当队列存满CAPACITY(32)个元素后继续尝试入队，报ERR_QUEUE_FULL(16#8001)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "count已达32满额，触发第33次入队，报16#8001，count锁定在32禁止越界覆盖",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 80,
+          "inputs": {
+            "enqueue": true,
+            "dequeue": false,
+            "itemIn": 8888,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 100,
+            "iCount": 32,
+            "bIsEmpty": false,
+            "bIsFull": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 100,
+            "iCount": 32,
+            "bIsEmpty": false,
+            "bIsFull": true,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 32,
+            "isEmpty": false,
+            "isFull": true,
+            "error": true,
+            "status": "16#8001"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 100,
+            "iCount": 32,
+            "bIsEmpty": false,
+            "bIsFull": true,
+            "bError": true,
+            "wStatus": "16#8001"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 0,
+            "diHeadPreview": 100,
+            "iCount": 32,
+            "bIsEmpty": false,
+            "bIsFull": true,
+            "bError": true,
+            "wStatus": "16#8001"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：HMI手动入队出队(bManualEnqueue / bManualDequeue)与外部PLC脉冲协同",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "触发HMI手动入队bManualEnqueue=TRUE，数值为777，count增加到1",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 90,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": true,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 777,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": true,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 777,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bManualEnqueue": false,
+            "diLastItemOut": 0,
+            "diHeadPreview": 777,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bManualEnqueue": false,
+            "diLastItemOut": 0,
+            "diHeadPreview": 777,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "命令并发冲突：同扫描周期enqueue与dequeue脉冲同时触发，队列先入先出安全调度，计数保持平衡",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "非空队列(现有1个元素)同时收到enqueue与dequeue，先写入新值并弹出旧值，count维持不变",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "enqueue": true,
+            "dequeue": true,
+            "itemIn": 666,
+            "clear": false
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 777,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": false,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 777,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "itemOut": 777,
+            "count": 1,
+            "isEmpty": false,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "diLastItemOut": 777,
+            "diHeadPreview": 666,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "diLastItemOut": 777,
+            "diHeadPreview": 666,
+            "iCount": 1,
+            "bIsEmpty": false,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "溢出/下溢错误状态复位恢复：在发生16#8001或16#8002错误后，通过clear=TRUE指令完全恢复STATUS_OK(16#0000)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "执行clear=TRUE，清除错误状态字，恢复为16#0000，error清除为FALSE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 110,
+          "inputs": {
+            "enqueue": false,
+            "dequeue": false,
+            "itemIn": 0,
+            "clear": true
+          },
+          "ioHmi_in": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": true,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": true,
+            "wStatus": "16#8002"
+          },
+          "ioHmi": {
+            "bManualEnqueue": false,
+            "bManualDequeue": false,
+            "bClearCmd": true,
+            "diManualItemIn": 0,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": true,
+            "wStatus": "16#8002"
+          },
+          "expectedOutputs": {
+            "itemOut": 0,
+            "count": 0,
+            "isEmpty": true,
+            "isFull": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bClearCmd": false,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bClearCmd": false,
+            "diLastItemOut": 0,
+            "diHeadPreview": 0,
+            "iCount": 0,
+            "bIsEmpty": true,
+            "bIsFull": false,
+            "bError": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "blockId": "LAD03",
+  "blockName": "FB_Valve_TonDelay_Pulse_LAD",
+  "initialState": {
+    "inputs": {
+      "enable": false,
+      "triggerCmd": false,
+      "eStopNC": true,
+      "presetDelay": "T#500ms"
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_IDLE_DISABLED",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": false,
+            "triggerCmd": false,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": false,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_PBOX_ONE_SHOT_AND_RETRIGGER",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "triggerPulse": true,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "2 scan cycles",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": false,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": false,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 4,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "triggerPulse": true,
+            "delayDone": false
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_TON_DELAY_BEFORE_AND_AFTER_PT",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "100ms",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "550ms",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "triggerPulse": false,
+            "delayDone": true
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ABORT_RESETS_TON_TIMER",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "200ms",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": false,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": false,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        },
+        {
+          "step": 3,
+          "scanCycleOrDuration": "200ms",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "delayDone": false
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_ESTOP_CUTS_VALVE_AND_TIMER",
+      "steps": [
+        {
+          "step": 1,
+          "scanCycleOrDuration": "550ms",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": true,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": true,
+            "delayDone": true
+          }
+        },
+        {
+          "step": 2,
+          "scanCycleOrDuration": "1 scan cycle",
+          "inputs": {
+            "enable": true,
+            "triggerCmd": true,
+            "eStopNC": false,
+            "presetDelay": "T#500ms"
+          },
+          "expectedOutputs": {
+            "valveOut": false,
+            "triggerPulse": false,
+            "delayDone": false
+          }
+        }
+      ]
+    }
+  ]
+}

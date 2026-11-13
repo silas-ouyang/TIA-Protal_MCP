@@ -1,0 +1,1218 @@
+{
+  "blockId": "A01",
+  "blockName": "FC_AnalogScaleAlarm",
+  "udtName": "UDT_HMI_AnalogScale",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "rawInput": 0,
+      "bipolar": false,
+      "reset": false
+    },
+    "ioHmi": {
+      "bManualOverride": false,
+      "bResetCmd": false,
+      "rManualValue": 0.0,
+      "rRawMin": 0.0,
+      "rRawMax": 27648.0,
+      "rEngMin": 0.0,
+      "rEngMax": 100.0,
+      "rLimitHH": 90.0,
+      "rLimitH": 80.0,
+      "rLimitL": 20.0,
+      "rLimitLL": 10.0,
+      "rScaledValue": 0.0,
+      "bAlarmHH": false,
+      "bAlarmH": false,
+      "bAlarmL": false,
+      "bAlarmLL": false,
+      "bWireBreak": false,
+      "wStatus": "16#0000"
+    },
+    "internalState": {}
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：标准0~100℃单极性温变量程，输入50%码值(13824)，无报警无错误",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "输入13824对应50.0工程值，处于正常范围[20.0, 80.0]内",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "rawInput": 13824,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 50.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：四限警报阈值完整阶梯扫描（低低限 -> 低限 -> 正常 -> 高限 -> 高高限）",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "输入原始码值1382(5.0)，触发低低限报警与低限警告",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 10,
+          "inputs": {
+            "rawInput": 1382,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 4.998553,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": true,
+            "alarmLL": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 4.998553,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 4.998553,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "输入原始码值4147(15.0)，处于低低限与低限之间，触发低限警告",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 20,
+          "inputs": {
+            "rawInput": 4147,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 5.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 5.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 14.999276,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": true,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 14.999276,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 14.999276,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "输入原始码值23501(85.0)，触发高限报警",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 30,
+          "inputs": {
+            "rawInput": 23501,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 15.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 15.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 85.000725,
+            "alarmHH": false,
+            "alarmH": true,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 85.000725,
+            "bAlarmHH": false,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 85.000725,
+            "bAlarmHH": false,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "输入原始码值26266(95.0)，触发高高限报警与高限报警",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 40,
+          "inputs": {
+            "rawInput": 26266,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 85.0,
+            "bAlarmHH": false,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 85.0,
+            "bAlarmHH": false,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 95.00145,
+            "alarmHH": true,
+            "alarmH": true,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 95.00145,
+            "bAlarmHH": true,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 95.00145,
+            "bAlarmHH": true,
+            "bAlarmH": true,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停/硬件故障断线：单极性模式下突然下溢断线(<-4864)，立即触发断线错误16#8401",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "rawInput突变为-5000（< RAW_UNDERFLOW_UNI -4864），立即置位断线故障与16#8401",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "rawInput": -5000,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "断线/急停故障未恢复时尝试复位：rawInput仍处于断线状态，执行reset=TRUE与bResetCmd=TRUE，故障锁存不能被清除",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "外部reset与ioHmi.bResetCmd同时为TRUE，但断线未排除，保持16#8401与error=TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 60,
+          "inputs": {
+            "rawInput": -5000,
+            "bipolar": false,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": true,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": true,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": true,
+            "bAlarmLL": true,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "传感器上溢超限冲突：rawInput=32600超过RAW_OVERFLOW(32511)，检测上溢错误16#8401",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "rawInput=32600触发溢出故障ERR_WIRE_BREAK(16#8401)",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 70,
+          "inputs": {
+            "rawInput": 32600,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "双极性下溢保护测试：bipolar=TRUE，rawInput=-32600小于RAW_UNDERFLOW_BIP(-32512)，报断线故障16#8401",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "双极性模式下溢出-32600触发16#8401",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 80,
+          "inputs": {
+            "rawInput": -32600,
+            "bipolar": true,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": -27648.0,
+            "rRawMax": 27648.0,
+            "rEngMin": -100.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": -80.0,
+            "rLimitLL": -90.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": -27648.0,
+            "rRawMax": 27648.0,
+            "rEngMin": -100.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": -80.0,
+            "rLimitLL": -90.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间：HMI手动仿真强制覆盖(bManualOverride)与工程量直通切换",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "自动模式下rawInput=13824，输出50.0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 90,
+          "inputs": {
+            "rawInput": 13824,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 75.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 75.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 50.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切换为手动覆盖bManualOverride=TRUE，强制给定75.0，无视rawInput=0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "rawInput": 0,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": true,
+            "bResetCmd": false,
+            "rManualValue": 75.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": true,
+            "bResetCmd": false,
+            "rManualValue": 75.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 75.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 75.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "rScaledValue": 75.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "配置参数冲突：除零量程错误(rRawMin==rRawMax)与工程量程倒置(rEngMin>=rEngMax)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "rRawMax与rRawMin相同导致除零，报ERR_ZERO_SPAN(16#8200)，输出安全值0.0",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 110,
+          "inputs": {
+            "rawInput": 13824,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 0.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 0.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8200"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8200"
+          },
+          "expectedHmi": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8200"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "报警阈值顺序倒置(rLimitLL=90 > rLimitHH=10)，报ERR_LIMIT_CFG(16#8201)",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 120,
+          "inputs": {
+            "rawInput": 13824,
+            "bipolar": false,
+            "reset": false
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 10.0,
+            "rLimitH": 20.0,
+            "rLimitL": 80.0,
+            "rLimitLL": 90.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": false,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 10.0,
+            "rLimitH": 20.0,
+            "rLimitL": 80.0,
+            "rLimitLL": 90.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "scaledValue": 0.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": true,
+            "status": "16#8201"
+          },
+          "expectedHmi_out": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8201"
+          },
+          "expectedHmi": {
+            "rScaledValue": 0.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8201"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "异常参数恢复：在发生16#8201参数错误后恢复正确配置与reset，状态机恢复到STATUS_OK(16#0000)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "纠正报警四限配置并触发reset=TRUE，状态恢复为16#0000，error清除",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 130,
+          "inputs": {
+            "rawInput": 13824,
+            "bipolar": false,
+            "reset": true
+          },
+          "ioHmi_in": {
+            "bManualOverride": false,
+            "bResetCmd": true,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8201"
+          },
+          "ioHmi": {
+            "bManualOverride": false,
+            "bResetCmd": true,
+            "rManualValue": 0.0,
+            "rRawMin": 0.0,
+            "rRawMax": 27648.0,
+            "rEngMin": 0.0,
+            "rEngMax": 100.0,
+            "rLimitHH": 90.0,
+            "rLimitH": 80.0,
+            "rLimitL": 20.0,
+            "rLimitLL": 10.0,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#8201"
+          },
+          "expectedOutputs": {
+            "scaledValue": 50.0,
+            "alarmHH": false,
+            "alarmH": false,
+            "alarmL": false,
+            "alarmLL": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bResetCmd": false,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bResetCmd": false,
+            "rScaledValue": 50.0,
+            "bAlarmHH": false,
+            "bAlarmH": false,
+            "bAlarmL": false,
+            "bAlarmLL": false,
+            "bWireBreak": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

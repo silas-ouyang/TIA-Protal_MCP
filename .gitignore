@@ -3,6 +3,10 @@
 *.log
 d.log
 active.lock.*
+pending_recovery.json
+backups/
+obj/
+obj-*/
 
 # OS generated files
 Thumbs.db

@@ -1,0 +1,905 @@
+{
+  "blockId": "A08",
+  "blockName": "FB_DualEStopInterlock",
+  "udtName": "UDT_HMI_DualEStop",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopCh1": true,
+      "eStopCh2": true,
+      "safetyGateOk": true,
+      "feedbackLoopOk": true,
+      "resetButton": false
+    },
+    "ioHmi": {
+      "bHmiResetCmd": false,
+      "tDiscrepancyTime": "T#200ms",
+      "bSafeToRun": false,
+      "bCh1State": true,
+      "bCh2State": true,
+      "bDiscrepancyFault": false,
+      "bWaitReset": true,
+      "wStatus": "16#7001"
+    },
+    "internalState": {
+      "statSafetyLatched": false,
+      "statDiscrepancyFault": false,
+      "statWaitBothZero": false,
+      "statResetOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_POWER_ON_INIT",
+      "category": "POWER_ON_INIT",
+      "scenarioCategory": "POWER_ON_INIT",
+      "description": "上电初始状态：双通道急停与安全门均正常闭合，安全标准强制要求等待人工复位脉冲(16#7001)，safetyEnableOut=FALSE",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "初始上电，未发生复位脉冲，resetRequired=TRUE，安全输出禁止输出，status=16#7001",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": true,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#7001"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NORMAL_FLOW",
+      "category": "NORMAL_FLOW",
+      "scenarioCategory": "NORMAL_FLOW",
+      "description": "正常工艺流程：现场安全复位按钮上升沿闭合安全主回路 -> safetyEnableOut使能 -> 按钮释放维持运行",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "现场按下复位按钮(resetButton 0->1)，安全回路闭合锁存，safetyEnableOut置TRUE，status=16#0000",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 50,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": true,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "复位按钮释放(resetButton 1->0)，安全回路保持锁存闭合状态，正常持续运行",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": true,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_ESTOP_DURING_MOTION",
+      "category": "ESTOP_DURING_MOTION",
+      "scenarioCategory": "ESTOP_DURING_MOTION",
+      "description": "动作中急停切断：运行中双通道急停被按下(eStopCh1=FALSE与eStopCh2=FALSE)，safetyEnableOut立即0ms硬切断，报ERR_ESTOP_PRESSED(16#8401)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "急停双触点断开，safetyEnableOut立即断开，statSafetyLatched清零，status=16#8401",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 110,
+          "inputs": {
+            "eStopCh1": false,
+            "eStopCh2": false,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_RESET_WHILE_ESTOP_ACTIVE",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时尝试复位：急停触点仍处于断开状态，按下复位按钮，复位请求被硬闭锁拒绝",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopCh1=FALSE下触发resetButton=TRUE，禁止闭合安全回路，保持16#8401与error=TRUE",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 120,
+          "inputs": {
+            "eStopCh1": false,
+            "eStopCh2": false,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": true,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": true,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi_out": {
+            "bHmiResetCmd": false,
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi": {
+            "bHmiResetCmd": false,
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SENSOR_CONFLICT_OR_STUCK",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "双通道触点粘连不同步冲突：通道1断开而通道2粘连闭合超过tDiscrepancyTime(T#200ms)，触发ERR_DISCREPANCY(16#8403)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "eStopCh1=FALSE而eStopCh2=TRUE持续达250ms(>200ms)，锁存触点粘连故障16#8403与discrepancyError=TRUE",
+          "scanCycleOrDuration": "250ms",
+          "elapsedTimeMs": 370,
+          "inputs": {
+            "eStopCh1": false,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8401"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": true,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ACTION_TIMEOUT",
+      "category": "ACTION_TIMEOUT",
+      "scenarioCategory": "ACTION_TIMEOUT",
+      "description": "不同步故障严格机械复位循环联锁：粘连故障后必须两通道同时断开(eStopCh1=FALSE且eStopCh2=FALSE)方可解除联锁",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "若未经双断开直接恢复Ch1与Ch2闭合，不同步故障statWaitBothZero依然锁定，禁止复位",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 420,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": true,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "现场人工完全按下急停使双通道均断开(eStopCh1=FALSE且eStopCh2=FALSE)，statWaitBothZero解除",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 470,
+          "inputs": {
+            "eStopCh1": false,
+            "eStopCh2": false,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": true,
+            "error": true,
+            "status": "16#8403"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": false,
+            "bCh2State": false,
+            "bDiscrepancyFault": true,
+            "bWaitReset": false,
+            "wStatus": "16#8403"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_MODE_SWITCH_TRANSIENT",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动切换瞬间/安全门联锁动作：运行中安全门打开(safetyGateOk=FALSE)，安全输出立即硬切断，报ERR_GATE_OPEN(16#8402)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "安全门开启，回路立即断开，报16#8402",
+          "scanCycleOrDuration": "10ms",
+          "elapsedTimeMs": 480,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": false,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "安全门重新关好(safetyGateOk=TRUE)，状态转为等待复位(16#7001)，指示灯resetRequired置位",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 530,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8402"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": true,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#7001"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_COMMAND_CONFLICT",
+      "category": "COMMAND_CONFLICT",
+      "scenarioCategory": "COMMAND_CONFLICT",
+      "description": "主接触器反馈回路粘连联锁冲突：feedbackLoopOk=FALSE(接触器触点粘连未释放)，即使下发复位亦严禁闭合安全使能",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "反馈触点异常feedbackLoopOk=FALSE，下发resetButton上升沿，安全回路被硬联锁拒绝闭合",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 580,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": false,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#7001"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#7001"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#7001"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CASE_ELSE_ILLEGAL_STATE",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "复位按钮卡死/防连击安全保护：复位按钮被物理卡死在TRUE电平时，急停旋出恢复严禁自启动，必须检测纯正上升沿",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "resetButton一直保持为TRUE，急停旋出闭合双通道，因无0->1跳变，安全输出严格保持FALSE禁止自启动",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 630,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": true,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#7001"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "释放复位按钮 (resetButton=FALSE) 清除旧沿锁存，等待后续复位上升沿",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 640,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": false
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": false,
+            "resetRequired": true,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#7001"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedHmi": {
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "复位按钮先释放为0再重新按下产生上升沿，安全回路方可闭合，恢复STATUS_SAFE_ACTIVE(16#0000)",
+          "scanCycleOrDuration": "50ms",
+          "elapsedTimeMs": 680,
+          "inputs": {
+            "eStopCh1": true,
+            "eStopCh2": true,
+            "safetyGateOk": true,
+            "feedbackLoopOk": true,
+            "resetButton": true
+          },
+          "ioHmi_in": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "ioHmi": {
+            "bHmiResetCmd": false,
+            "tDiscrepancyTime": "T#200ms",
+            "bSafeToRun": false,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": true,
+            "wStatus": "16#7001"
+          },
+          "expectedOutputs": {
+            "safetyEnableOut": true,
+            "resetRequired": false,
+            "discrepancyError": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi_out": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi": {
+            "bSafeToRun": true,
+            "bCh1State": true,
+            "bCh2State": true,
+            "bDiscrepancyFault": false,
+            "bWaitReset": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    }
+  ]
+}

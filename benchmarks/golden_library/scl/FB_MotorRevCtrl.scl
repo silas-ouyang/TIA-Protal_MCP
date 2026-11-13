@@ -1,0 +1,258 @@
+﻿FUNCTION_BLOCK "FB_MotorRevCtrl"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      eStopOk : Bool;   // 急停回路正常（常闭健康为 TRUE）
+      thermalOk : Bool;   // 热继电器/断路器正常（常闭健康为 TRUE）
+      interlockOk : Bool;   // 外部工艺运行允许联锁
+      autoMode : Bool;   // 外部自动模式使能
+      autoFwdCmd : Bool;   // 自动正转命令
+      autoRevCmd : Bool;   // 自动反转命令
+      fbkFwd : Bool;   // 正转接触器辅助常开触点反馈
+      fbkRev : Bool;   // 反转接触器辅助常开触点反馈
+      useFeedback : Bool;   // TRUE: 启用接触器反馈超时校验；FALSE: 无反馈仿真模式
+      reset : Bool;   // 外部故障复位
+   END_VAR
+
+   VAR_OUTPUT 
+      contactorFwd : Bool;   // 正转接触器 KM1 输出
+      contactorRev : Bool;   // 反转接触器 KM2 输出
+      running : Bool;   // 电机运行中指示
+      error : Bool;   // 电机故障报警输出
+      status : Word;   // 状态/故障代码
+   END_VAR
+
+   VAR_IN_OUT 
+      ioHmi : "UDT_HMI_MotorRevCtrl";   // HMI交互与参数状态结构体
+   END_VAR
+
+   VAR 
+      statState : Int;   // 0:停机, 10:正转运行, 20:反转运行, 30:换向死区等待, 99:故障锁存
+      statTargetDir : Int;   // 换向目标方向：1正转, 2反转
+      statError : Bool;
+      statStatus : Word;
+      instDeadbandTimer : TON_TIME;   // 正反转切换死区定时器
+      instFbkTimer : TON_TIME;   // 接触器吸合/释放反馈超时定时器
+   END_VAR
+
+   VAR_TEMP 
+      tempReqFwd : Bool;
+      tempReqRev : Bool;
+      tempOutFwd : Bool;
+      tempOutRev : Bool;
+      tempDeadbandTime : Time;
+      tempFbkTime : Time;
+      tempFbkMismatch : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_IDLE : Int := 0;
+      STATE_FWD : Int := 10;
+      STATE_REV : Int := 20;
+      STATE_DEADBAND : Int := 30;
+      STATE_FAULT : Int := 99;
+      STATUS_OK : Word := 16#0000;
+      ERR_THERMAL : Word := 16#8401;
+      ERR_FBK_TIMEOUT : Word := 16#8402;
+      ERR_ESTOP : Word := 16#8403;
+   END_VAR
+
+BEGIN
+    // 初始化临时变量 (SE002)
+    #tempReqFwd := FALSE;
+    #tempReqRev := FALSE;
+    #tempOutFwd := FALSE;
+    #tempOutRev := FALSE;
+    #tempDeadbandTime := T#0s;
+    #tempFbkTime := T#0s;
+    #tempFbkMismatch := FALSE;
+
+    // 参数时间获取与默认值
+    IF #ioHmi.tReverseDeadband > T#0s THEN
+        #tempDeadbandTime := #ioHmi.tReverseDeadband;
+    ELSE
+        #tempDeadbandTime := T#1s;
+    END_IF;
+
+    IF #ioHmi.tFeedbackTimeout > T#0s THEN
+        #tempFbkTime := #ioHmi.tFeedbackTimeout;
+    ELSE
+        #tempFbkTime := T#2s;
+    END_IF;
+
+    // 复位命令处理
+    IF #reset OR #ioHmi.bResetCmd THEN
+        #ioHmi.bResetCmd := FALSE;
+        IF (#statState = #STATE_FAULT) AND #eStopOk AND #thermalOk THEN
+            #statState := #STATE_IDLE;
+            #statError := FALSE;
+            #statStatus := #STATUS_OK;
+        END_IF;
+    END_IF;
+
+    // 1. 安全保护优先判断
+    IF NOT #eStopOk THEN
+        #statState := #STATE_FAULT;
+        #statError := TRUE;
+        #statStatus := #ERR_ESTOP;
+    ELSIF NOT #thermalOk THEN
+        #statState := #STATE_FAULT;
+        #statError := TRUE;
+        #statStatus := #ERR_THERMAL;
+    END_IF;
+
+    // 2. 正反转命令源解析与冲突处理
+    IF #ioHmi.bManualMode OR (NOT #autoMode) THEN
+        IF #ioHmi.bManualStopCmd THEN
+            #tempReqFwd := FALSE;
+            #tempReqRev := FALSE;
+            #ioHmi.bManualStopCmd := FALSE;
+        ELSE
+            #tempReqFwd := #ioHmi.bManualFwdCmd;
+            #tempReqRev := #ioHmi.bManualRevCmd;
+        END_IF;
+    ELSE
+        #tempReqFwd := #autoFwdCmd;
+        #tempReqRev := #autoRevCmd;
+    END_IF;
+
+    // 正反转命令同时为 TRUE 时视为停机请求
+    IF #tempReqFwd AND #tempReqRev THEN
+        #tempReqFwd := FALSE;
+        #tempReqRev := FALSE;
+    END_IF;
+
+    // 3. 状态机逻辑
+    CASE #statState OF
+        #STATE_IDLE:
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+            #instDeadbandTimer(IN := FALSE, PT := #tempDeadbandTime);
+            IF #interlockOk THEN
+                IF #tempReqFwd AND NOT #tempReqRev THEN
+                    #statState := #STATE_FWD;
+                ELSIF #tempReqRev AND NOT #tempReqFwd THEN
+                    #statState := #STATE_REV;
+                END_IF;
+            END_IF;
+
+        #STATE_FWD:
+            IF NOT #interlockOk THEN
+                #statTargetDir := 0;
+                #statState := #STATE_DEADBAND;
+                #tempOutFwd := FALSE;
+            ELSIF #tempReqRev THEN
+                // 收到反转请求，锁存目标方向并强制进入换向灭弧死区
+                #statTargetDir := 2;
+                #statState := #STATE_DEADBAND;
+                #tempOutFwd := FALSE;
+            ELSIF NOT #tempReqFwd THEN
+                // 停机同样进入灭弧死区冷却，防止短时间内反向点动绕过死区
+                #statTargetDir := 0;
+                #statState := #STATE_DEADBAND;
+                #tempOutFwd := FALSE;
+            ELSE
+                #tempOutFwd := TRUE;
+                #tempOutRev := FALSE;
+            END_IF;
+
+        #STATE_REV:
+            IF NOT #interlockOk THEN
+                #statTargetDir := 0;
+                #statState := #STATE_DEADBAND;
+                #tempOutRev := FALSE;
+            ELSIF #tempReqFwd THEN
+                // 收到正转请求，锁存目标方向并强制进入换向灭弧死区
+                #statTargetDir := 1;
+                #statState := #STATE_DEADBAND;
+                #tempOutRev := FALSE;
+            ELSIF NOT #tempReqRev THEN
+                // 停机同样进入灭弧死区冷却，防止短时间内反向点动绕过死区
+                #statTargetDir := 0;
+                #statState := #STATE_DEADBAND;
+                #tempOutRev := FALSE;
+            ELSE
+                #tempOutFwd := FALSE;
+                #tempOutRev := TRUE;
+            END_IF;
+
+        #STATE_DEADBAND:
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+            // 若死区等待期间出现新的方向请求，实时更新目标方向
+            IF #tempReqFwd AND (NOT #tempReqRev) THEN
+                #statTargetDir := 1;
+            ELSIF #tempReqRev AND (NOT #tempReqFwd) THEN
+                #statTargetDir := 2;
+            END_IF;
+            #instDeadbandTimer(IN := TRUE, PT := #tempDeadbandTime);
+            IF #instDeadbandTimer.Q THEN
+                #instDeadbandTimer(IN := FALSE, PT := #tempDeadbandTime);
+                // 死区时间到且反方向触点已断开
+                IF (NOT #useFeedback) OR ((NOT #fbkFwd) AND (NOT #fbkRev)) THEN
+                    IF (#statTargetDir = 1) AND #tempReqFwd AND #interlockOk THEN
+                        #statState := #STATE_FWD;
+                    ELSIF (#statTargetDir = 2) AND #tempReqRev AND #interlockOk THEN
+                        #statState := #STATE_REV;
+                    ELSE
+                        #statState := #STATE_IDLE;
+                    END_IF;
+                END_IF;
+            END_IF;
+
+        #STATE_FAULT:
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+            #instDeadbandTimer(IN := FALSE, PT := #tempDeadbandTime);
+
+        ELSE
+            #statState := #STATE_IDLE;
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+            #instDeadbandTimer(IN := FALSE, PT := #tempDeadbandTime);
+    END_CASE;
+
+    // 4. 反馈超时监控 (useFeedback = TRUE)
+    #tempFbkMismatch := (#tempOutFwd <> #fbkFwd) OR (#tempOutRev <> #fbkRev);
+    IF #useFeedback AND (#statState <> #STATE_FAULT) THEN
+        #instFbkTimer(IN := #tempFbkMismatch, PT := #tempFbkTime);
+        IF #instFbkTimer.Q THEN
+            #statState := #STATE_FAULT;
+            #statError := TRUE;
+            #statStatus := #ERR_FBK_TIMEOUT;
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+        END_IF;
+    ELSE
+        #instFbkTimer(IN := FALSE, PT := #tempFbkTime);
+    END_IF;
+
+    // 正常状态码维护
+    IF NOT #statError THEN
+        #statStatus := #STATUS_OK;
+    END_IF;
+
+    // 5. 块尾硬互锁与安全切断（使用临时变量运算，严禁回读 Output 参数）
+    IF (NOT #statError) AND #eStopOk AND #thermalOk THEN
+        IF #tempOutFwd AND #tempOutRev THEN
+            #tempOutFwd := FALSE;
+            #tempOutRev := FALSE;
+        END_IF;
+    ELSE
+        #tempOutFwd := FALSE;
+        #tempOutRev := FALSE;
+    END_IF;
+
+    // 同步状态至 ioHmi (使用 temp 变量)
+    #ioHmi.bRunningFwd := #tempOutFwd;
+    #ioHmi.bRunningRev := #tempOutRev;
+    #ioHmi.bFault := #statError;
+    #ioHmi.wStatus := #statStatus;
+
+    // 输出集中写入 (DA008，绝不回读 Output)
+    #contactorFwd := #tempOutFwd;
+    #contactorRev := #tempOutRev;
+    #running := #tempOutFwd OR #tempOutRev;
+    #error := #statError;
+    #status := #statStatus;
+END_FUNCTION_BLOCK

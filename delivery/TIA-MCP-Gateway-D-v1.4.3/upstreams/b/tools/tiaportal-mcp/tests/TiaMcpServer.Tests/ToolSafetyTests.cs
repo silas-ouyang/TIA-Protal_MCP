@@ -39,6 +39,9 @@ namespace TiaMcpServer.Tests
             Pin("ImportBlock", s => s.Destructive, "imports use Override semantics");
             Pin("CloseProject", s => s.Destructive, "closing loses unsaved edits");
             Pin("GoOfflineAll", s => s.Destructive && s.OpenWorld, "drops live sessions, including the user's");
+            Pin("GetPlcProtection", s => s.ReadOnly && !s.Destructive && s.TouchesPortal && !s.OpenWorld, "reads CPU protection settings");
+            Pin("SetPlcProtection", s => s.Destructive && s.Idempotent && s.TouchesPortal && !s.OpenWorld, "configures offline CPU protection settings");
+            Pin("SetOnlinePlcMasterSecret", s => s.Destructive && s.Idempotent && s.OpenWorld && s.TouchesPortal, "sets online PLC master secret");
             Pin("GetBlocks", s => s.ReadOnly && !s.Destructive && s.Idempotent && s.TouchesPortal && !s.OpenWorld,
                 "read-only but still needs the portal");
             Pin("ReadPlcLiveValuesS7", s => s.ReadOnly && s.OpenWorld, "reads a CPU over the network");

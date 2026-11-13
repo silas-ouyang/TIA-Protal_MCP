@@ -1,0 +1,1662 @@
+{
+  "blockId": "B07",
+  "blockName": "FB_FIO_Assembler",
+  "udtName": "UDT_HMI_FIO_Assembler",
+  "specReference": "D:\\TIA_MCP\\benchmarks\\standard_blocks_spec.json",
+  "initialState": {
+    "inputs": {
+      "eStopOk": true,
+      "startBtn": false,
+      "stopBtn": true,
+      "resetBtn": false,
+      "lidAtPlace": false,
+      "baseAtPlace": false,
+      "partLeaving": false,
+      "lidClamped": false,
+      "baseClamped": false,
+      "posAtLimit": false,
+      "movingX": false,
+      "movingZ": false,
+      "itemDetected": false
+    },
+    "ioHmi": {
+      "bManualMode": false,
+      "bStartCmd": false,
+      "bStopCmd": false,
+      "bResetCmd": false,
+      "tActionDelay": "T#500ms",
+      "tStepTimeout": "T#6s",
+      "iCurrentStep": 0,
+      "diAssembledCount": 0,
+      "bRunning": false,
+      "bFault": false,
+      "wStatus": "16#7000"
+    },
+    "internalState": {
+      "statStep": 0,
+      "statRunning": false,
+      "statStopReq": false,
+      "statStartOld": false,
+      "statResetOld": false
+    }
+  },
+  "testCases": [
+    {
+      "caseId": "TC01_PowerOnInit",
+      "category": "POWER_ON_INIT",
+      "description": "上电初始状态：急停正常，夹紧气缸缩回，机械手与传送带全部停机，待机 STEP_IDLE (0)，状态码 16#7000",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "POWER_ON_INIT",
+          "description": "PLC上电首周期扫描，确认双工位夹紧与机械手处于安全初始态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 0,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC02_NormalFlow_CompleteAssembly",
+      "category": "NORMAL_FLOW",
+      "description": "正常工艺流程：双工位同时进料、夹紧定位、抓取盖板、平移装配到底座、顶升排出成品",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "启动系统：startBtn 上升沿触发，进入 STEP_FEED_BOTH (10)，双工位传送带 convLids 与 convBases 同时启动",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "convLids": true,
+            "convBases": true,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "盖板与底座均到达工位 (lidAtPlace=TRUE, baseAtPlace=TRUE)，皮带停，进入 STEP_CLAMP_BOTH (20)，启动双气缸夹紧",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 1500,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": true,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": true,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 20,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 20,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "两气缸夹紧到位 (lidClamped=TRUE, baseClamped=TRUE)，进入 STEP_Z_DOWN_LID (30)，机械手 Z 轴下降 (moveZ=TRUE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 2200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": true,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": true,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": true,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 20,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 20,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": true,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 30,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 30,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 4,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴下降到位静止 (movingZ=FALSE)，进入 STEP_GRAB_LID (40)，吸盘吸气抓盖板 (grab=TRUE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 2800,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": true,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": true,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 30,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 30,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": true,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 40,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 40,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 5,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "检测到抓取成功 (itemDetected=TRUE)，盖板夹紧松开 (clampLid=FALSE)，进入 STEP_Z_UP_LID (50)，Z轴上升 (moveZ=FALSE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 3400,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": true,
+            "itemDetected": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 40,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 40,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 50,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 50,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 6,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "Z轴上升安全到位 (movingZ=FALSE)，进入 STEP_X_TO_BASE (60)，X轴横移至底座上方 (moveX=TRUE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 4000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": true,
+            "movingZ": false,
+            "itemDetected": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 50,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 50,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": true,
+            "moveZ": false,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 7,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "X轴横移对准到位 (movingX=FALSE)，进入 STEP_Z_DOWN_ASSY (70)，Z轴下降压装盖板 (moveZ=TRUE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 4600,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": true,
+            "moveZ": true,
+            "grab": true,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 70,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 70,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 8,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "压装到位静止 (movingZ=FALSE)，进入 STEP_RELEASE_ASSY (80)，释放真空吸盘 (grab=FALSE)",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 5200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 70,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 70,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": true,
+            "posRaise": false,
+            "moveX": true,
+            "moveZ": true,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 80,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 80,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 9,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "真空完全释放，进入 STEP_EJECT (90)：Z轴上升回缩X轴，松开底座夹紧 (clampBase=FALSE)，顶升气缸抬起 (posRaise=TRUE)，启动 convBases 排出成品",
+          "scanCycleOrDuration": "510ms",
+          "elapsedTimeMs": 5800,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": true,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 80,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 80,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": true,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": true,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 90,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 90,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        },
+        {
+          "step": 10,
+          "scenarioCategory": "NORMAL_FLOW",
+          "description": "成品检测离开 (partLeaving 上升沿后离开)，累计装配数+1，posRaise 落下，完成一次装配顺控并进入下个循环",
+          "scanCycleOrDuration": "2 scan cycles",
+          "elapsedTimeMs": 7000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": true,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 90,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 90,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": true,
+            "convBases": true,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#0000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 10,
+            "diAssembledCount": 1,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 10,
+            "diAssembledCount": 1,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC03_EStopDuringMotion",
+      "category": "ESTOP_DURING_MOTION",
+      "description": "动作中急停：机械手横移搬送盖板中 (STEP_X_TO_BASE 60) 急停被触发，皮带、气缸、吸盘瞬间硬断电并报 16#8402",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ESTOP_DURING_MOTION",
+          "description": "X轴横移中 eStopOk 突降为 FALSE，全部 8 个执行器输出断开，跳入 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4200,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": true,
+            "movingZ": false,
+            "itemDetected": true
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC04_ResetWhileEStopActive",
+      "category": "RESET_WHILE_ESTOP_ACTIVE",
+      "description": "急停未解除时复位：急停下尝试复位被拦截；急停解除后复位成功回 STEP_IDLE (0)",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "eStopOk=FALSE 时输入 resetBtn，系统保持故障且输出锁定",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 5000,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "释放复位按钮 (resetBtn=FALSE, bResetCmd=FALSE) 释放上升沿锁存，仍保持 STEP_FAULT (99)",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 5100,
+          "inputs": {
+            "eStopOk": false,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8402"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          }
+        },
+        {
+          "step": 3,
+          "scenarioCategory": "RESET_WHILE_ESTOP_ACTIVE",
+          "description": "恢复 eStopOk=TRUE 再次复位，系统成功复位转入 STEP_IDLE (0) 待命",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 6000,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": true,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": true,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8402"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC05_SensorConflictOrStuck",
+      "category": "SENSOR_CONFLICT_OR_STUCK",
+      "description": "工件意外脱落故障：在平移步 STEP_X_TO_BASE (60) 期间 itemDetected 丢失，立即跳入故障停机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "SENSOR_CONFLICT_OR_STUCK",
+          "description": "搬送途中盖板掉落 (itemDetected 变为 FALSE)，触发掉件保护机制，跳 STEP_FAULT (99) 报 16#8401",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 4300,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": true,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": true,
+            "posAtLimit": false,
+            "movingX": true,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 60,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC06_ActionTimeout",
+      "category": "ACTION_TIMEOUT",
+      "description": "进料超时保护：在 STEP_FEED_BOTH (10) 中盖板已到但底座缺料超过 tStepTimeout (6s)，触发超时报警停机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "ACTION_TIMEOUT",
+          "description": "底座输送带持续运转，但 baseAtPlace 超过 6000ms 未感应，看门狗定时器 instWatchdog 报警",
+          "scanCycleOrDuration": "6000ms",
+          "elapsedTimeMs": 6100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": true,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 10,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": true,
+            "status": "16#8401"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 99,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": true,
+            "wStatus": "16#8401"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC07_ModeSwitchTransient",
+      "category": "MODE_SWITCH_TRANSIENT",
+      "description": "手自动模式切换：切换为手动模式，自动顺控安全暂停，切回自动平稳恢复待命",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切换为手动模式 (bManualMode=TRUE)，顺控步序冻结，输出由手动安全接管",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": true,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        },
+        {
+          "step": 2,
+          "scenarioCategory": "MODE_SWITCH_TRANSIENT",
+          "description": "切回自动模式 (bManualMode=FALSE)，系统回到自动待命",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 200,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC08_CommandConflict",
+      "category": "COMMAND_CONFLICT",
+      "description": "工位动作冲突与启动/停止冲突：启动与停止信号同时按下，停止绝对优先",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "COMMAND_CONFLICT",
+          "description": "同时输入 startBtn=TRUE 与 stopBtn=FALSE，系统保持待命停止态",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": true,
+            "stopBtn": false,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": true,
+            "bStopCmd": true,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": true,
+            "bStopCmd": true,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "TC09_CaseElseIllegalState",
+      "category": "CASE_ELSE_ILLEGAL_STATE",
+      "description": "非法状态号捕获：注入 statStep = 999，CASE ELSE 捕获并强制退回安全停机",
+      "steps": [
+        {
+          "step": 1,
+          "scenarioCategory": "CASE_ELSE_ILLEGAL_STATE",
+          "description": "注入非法步号 999，装配机自愈，全部执行器输出强制复位",
+          "scanCycleOrDuration": "1 scan cycle",
+          "elapsedTimeMs": 100,
+          "inputs": {
+            "eStopOk": true,
+            "startBtn": false,
+            "stopBtn": true,
+            "resetBtn": false,
+            "lidAtPlace": false,
+            "baseAtPlace": false,
+            "partLeaving": false,
+            "lidClamped": false,
+            "baseClamped": false,
+            "posAtLimit": false,
+            "movingX": false,
+            "movingZ": false,
+            "itemDetected": false
+          },
+          "ioHmi": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 999,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "ioHmi_in": {
+            "bManualMode": false,
+            "bStartCmd": false,
+            "bStopCmd": false,
+            "bResetCmd": false,
+            "tActionDelay": "T#500ms",
+            "tStepTimeout": "T#6s",
+            "iCurrentStep": 999,
+            "diAssembledCount": 0,
+            "bRunning": true,
+            "bFault": false,
+            "wStatus": "16#0000"
+          },
+          "expectedOutputs": {
+            "convLids": false,
+            "convBases": false,
+            "clampLid": false,
+            "clampBase": false,
+            "posRaise": false,
+            "moveX": false,
+            "moveZ": false,
+            "grab": false,
+            "error": false,
+            "status": "16#7000"
+          },
+          "expectedHmi": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          },
+          "expectedHmi_out": {
+            "iCurrentStep": 0,
+            "diAssembledCount": 0,
+            "bRunning": false,
+            "bFault": false,
+            "wStatus": "16#7000"
+          }
+        }
+      ]
+    }
+  ]
+}
