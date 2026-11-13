@@ -1,6 +1,23 @@
-# TIA-MCP-Gateway
+# TIA-MCP-Gateway (`TIA-Protal_MCP`)
 
-A unified Model Context Protocol (MCP) gateway bridging **Google Antigravity**, Claude Desktop, Claude Code, Cursor, VS Code, Codex, Gemini CLI, WorkBuddy, opencode, and DeepSeek Harness with Siemens TIA Portal (V15 through V21.1).
+A unified Model Context Protocol (MCP) gateway bridging **Google Antigravity**, Claude Desktop, Claude Code, Cursor, VS Code, Codex, Gemini CLI, WorkBuddy, opencode, and DeepSeek Harness with **Siemens TIA Portal (V15–V21.1)** and **PLCSIM Advanced V7.0**.
+
+> **中文快速导航**：[快速开始指南](delivery/TIA-MCP-Gateway-D-v1.4.3/快速开始.md) · [PLCSIM 实测报告（19/19 通过）](benchmarks/logs/plcsim_e2e_report.md) · [Phase 2 审计与修复记录](benchmarks/logs/offline_audit_and_fixes.md) · [PLCSIM 仿真桥接说明](plcsim-adv-bridge/README.md)
+
+### Current Verified Status (Phase 2)
+
+- **PLCSIM Advanced V7.0 E2E**: **19/19 blocks passed** (`15` Golden SCL FB/FC + `4` LAD SimaticML XML blocks), **138/138 executed test cases passed**, `0` compile errors/warnings (`6ES7 513-1AM03-0AB0 V3.1`, verified via `sharp7-s7-102`).
+- **Offline Vector & Lint Gate**: `validate-vectors.js --strict` (`15` blocks, `135` cases / `236` steps, `0` errors/warnings, `0` known vector/block mismatches).
+- **Gateway & Installer Self-Checks**: Zero-dependency Node Gateway D + `install.js` supporting 10 AI hosts (`test-gateway-offline.js` 9/9, `test-lad-harness.js` 9/9).
+- **Known Scope**: Automated E2E runs target TIA Portal **V20** + **PLCSIM Advanced V7.0** (S7-1500 virtual CPU); physical S7-1200 (`1214C`) hardware regression and full Factory I/O closed-loop E2E remain manual/future validation.
+
+### Repository Layout
+
+| Directory | Contents |
+|---|---|
+| `delivery/TIA-MCP-Gateway-D-v1.4.3/` | Unified Gateway D (`gateway/`), Upstreams A/B, 10-host `install.js`, startup scripts, and 6 engineering `skills/`. |
+| `plcsim-adv-bridge/` | Standalone x64 C#/.NET PLCSIM Advanced V7.0 CLI & MCP bridge (`Sharp7` + simulation lifecycle). |
+| `benchmarks/` | 15 Golden SCL blocks, `UDT_HMI_*` types, `lad_test/` (`LAD01–LAD04`), test vectors, E2E runner, and reports. |
 
 ---
 
@@ -92,7 +109,7 @@ For **Google Antigravity**, the active Windows MCP config is `%USERPROFILE%\.gem
   .\delivery\TIA-MCP-Gateway-D-v1.4.3\gateway\runtime\node.exe .\delivery\TIA-MCP-Gateway-D-v1.4.3\gateway\smoke-test.js
   ```
   Runs pure-function unit tests, the `F1–F14` Mock HTTP (`127.0.0.1:0`) / Mock B fault-injection matrix, and offline B checks without requiring TIA or touching Port 8000.
-- **15 Golden Blocks Benchmark Suite (`benchmarks/runner/`)**:
+- **Golden Blocks & LAD Benchmark Suite (`benchmarks/runner/`)**:
   Includes `validate-vectors.js` (`[--strict] [--json] [--block <BlockName>] [--manifest <path>]`), `offline-eval.js` (`[--mode raw|manifest]`), `deviation-manifest.json` (15 block policies + 32 runtime/private-state adaptation rules across 135 cases / 236 steps, `0` known vector mismatches), `generate-plc-harness.js` (Route 1 PLC self-driving SCL harness generator with built-in V20 anti-pattern linter and non-optimized `DB_TestSummary`), `lad-harness.js` (LAD/S7DCL harness generator for `benchmarks/lad_test/`), and `run-plcsim-e2e.js` (19/19 blocks, 138/138 cases `0E/0W` verified on PLCSIM Advanced V7.0). See `benchmarks/runner/README.md` for details.
 
 #### 4. PLCSIM Advanced V7.0 Simulation Bridge (`plcsim-adv-bridge/`)
